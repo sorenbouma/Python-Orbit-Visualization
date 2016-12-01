@@ -15,6 +15,53 @@ v = v_circ(geocentric*2)
 #        inclination=pi/6,  ascend_node_long=pi/10)
 
 
+
+class EarthVis(Earth):
+    """Adds visualization to the Earth class(found in orbit.py)."""
+    def __init__(self,att_i,rotation_axis,points=None):
+        Earth.__init__(self,att_i,rotation_axis,points)
+        self.orb = sphere(material=materials.earth,radius=EARTH_r,)
+        self.orb.rotate(angle=pi/2,axis=(0,0,1))
+        self.orb.rotate(angle=pi/2,axis=(0,1,0))
+        self.att_i = 0
+        self.att = self.att_i
+
+    def set_angle(self,theta):
+        """Sets the displayed earths orientation to theta(in radians),
+            about the rotation_axis """
+        diff = theta - self.att
+        self.orb.rotate(angle=diff,axis=self.rotation_axis)
+        self.att = theta
+
+    def set_to_time(self,t):
+        """Sets the display to what it should look like at time t(seconds)"""
+        theta = self.attitude_at(t)
+        self.set_angle(theta)
+
+
+
+class AxisVis:
+    """Visualize a set of 3d axes as colored arrows."""
+    def __init__(self,arrowlen,center=(0,0,0),standard=True):
+        if standard:
+            x=(arrowlen,0,0)
+            y=(0,arrowlen,0)
+            z=(0,0,arrowlen)
+        self.center = center
+        self.arrows={}
+        self.arrows['x'] = arrow(pos=center,axis=x,color=color.green,shaftwidth=arrowlen/100)
+        self.arrows['y'] = arrow(pos=center,axis=y,color=color.red,shaftwidth=arrowlen/100)
+        self.arrows['z'] = arrow(pos=center,axis=z,color=color.blue,shaftwidth=arrowlen/100)
+
+    def set_pos(self,new_pos):
+        """Moves the arrows to a new position. """
+        self.center = new_pos
+        for arrow in arrow:
+            arrow.pos = new_pos
+
+
+
+
 class OrbitVisualizer:
     """Class for visualizing 3d orbit around earth, using the ExtendedOrbit class.
         Parameters:
@@ -30,10 +77,7 @@ class OrbitVisualizer:
         #earth sphere display
         scene.title='Satellite Toolkit Display'
 
-        self.earth = sphere(material=materials.earth,radius=EARTH_r,)
-        self.earth.rotate(angle=pi/2,axis=(0,0,1))
-        self.earth.rotate(angle=pi/2,axis=(0,1,0))
-        self.earth_angle = 0
+        self.earth = EarthVis(0,(0,0,1))
         #satellite display
         self.sat = box(pos=self.orbit.r0,size=(1e6,1e6,1e6))
         self.trail = curve(pos=self.sat.pos,color=color.magenta)
@@ -75,20 +119,12 @@ class OrbitVisualizer:
         t = float(t)
         self.sat.pos = self.orbit.t_to_xyz(t)
         #self.trail.append(pos=self.sat.pos)
-        self.set_earth(self.orbit.earth_attitude_at(t))
+        self.earth.set_to_time(t)
         b = self.orbit.battery_at(t)
         self.battery.SetValue(b)
         self.batterytitle.SetLabel("Battery: {:.1f}%".format(b))
         self.set_sundir(t)
         self.umbra.rotate(axis=(0,0,1),angle=0.01)
-
-    def set_earth(self,theta):
-        """Sets the displayed earths orientation to theta(in radians) """
-        diff = theta - self.earth_angle
-        a = 23.1 #
-        polar_axis = (-np.sin(a),0,-np.cos(a))
-        self.earth.rotate(angle=diff,axis=(0,0,1))
-        self.earth_angle = theta
 
 
     def get_curve(self,resolution=20):
@@ -106,13 +142,7 @@ class OrbitVisualizer:
         """Puts arrows to represent xyz axes on display.
             green=x,red=y,blue=z"""
         arrowlen = max(self.orbit.a / 5, EARTH_r * 1.3)
-        x=(arrowlen,0,0)
-        y=(0,arrowlen,0)
-        z=(0,0,arrowlen)
-        self.xarrow = arrow(pos=(0,0,0),axis=x,color=color.green,shaftwidth=arrowlen/100)
-        self.yarrow = arrow(pos=(0,0,0),axis=y,color=color.red,shaftwidth=arrowlen/100)
-        self.zarrow = arrow(pos=(0,0,0),axis=z,color=color.blue,shaftwidth=arrowlen/100)
-        #self.polarvec = arrow(axis=(-arrowlen*np.sin(23.1),0,-arrowlen*np.cos(23.1)),shaftwidth=arrowlen/100)
+        self.axes = AxisVis(arrowlen)
 
     def set_sundir(self,t):
         """Sets the direction of the sun/lighting tp where it should be at
