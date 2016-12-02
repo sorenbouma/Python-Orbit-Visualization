@@ -10,8 +10,6 @@ EARTH_r = 6.373e6#radius of earth
 SUN_TO_EARTH = 1.478e11 #distance from earth to sun in metres
 SUN_r = 6.957e8 #radius of sun
 
-#TESTING FOR GIT - THIS SHOULD ONLY BE IN MODULAR_EARTH BRANCH
-
 
 class EllipticOrbit1:
     """Elliptic orbit around the earth..

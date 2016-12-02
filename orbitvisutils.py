@@ -23,6 +23,13 @@ class EarthVis(Earth):
         self.orb = sphere(material=materials.earth,radius=EARTH_r,)
         self.orb.rotate(angle=pi/2,axis=(0,0,1))
         self.orb.rotate(angle=pi/2,axis=(0,1,0))
+        #axis to rotate earth about to get initial orient right.
+        axv = tuple(np.cross((0,0,1),rotation_axis))
+        #angle between z and rotation axis()()
+        theta = np.dot((0,0,1),rotation_axis) / (mag((0,0,1)) * mag(rotation_axis))
+        theta = np.arccos(theta)
+        self.orb.rotate(angle=theta,axis=axv)
+
         self.att_i = 0
         self.att = self.att_i
 
@@ -74,16 +81,19 @@ class OrbitVisualizer:
         self.L=100
         self.Hgraph = 50
         self.trange = trange
-        #earth sphere display
-        scene.title='Satellite Toolkit Display'
-
-        self.earth = EarthVis(0,(0,0,1))
-        #satellite display
-        self.sat = box(pos=self.orbit.r0,size=(1e6,1e6,1e6))
-        self.trail = curve(pos=self.sat.pos,color=color.magenta)
         self.window = window(width=2*(self.L+window.dwidth), height=200,
            menus=True, title='Satellite Toolkit Controls',
            style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
+        #earth sphere display
+        scene.title='Satellite Toolkit Display'
+        rot_axis = (0,1.3*EARTH_r*np.sin(13.1*pi/180),1.3*EARTH_r*np.cos(13.1*pi/180),)
+        #for debug
+        a = arrow(axis=rot_axis,color=color.white,shaftwidth=EARTH_r/100)
+        self.earth = EarthVis(0,rot_axis)
+        #satellite display
+        self.sat = box(pos=self.orbit.r0,size=(1e6,1e6,1e6))
+        self.trail = curve(pos=self.sat.pos,color=color.magenta)
+
 
         self.timeslider = wx.Slider(self.window.panel,
             pos=(0.6*self.L,0.8*self.L),
@@ -99,7 +109,8 @@ class OrbitVisualizer:
         self.battery.SetValue(100)
         self.batterytitle = wx.StaticText(self.window.panel,-1,'Battery: 100%',pos=(0.6*self.L,0.1*self.L))
         if show_axis:
-            self.make_axes()
+            arrowlen = max(self.orbit.a / 5, EARTH_r * 1.3)
+            self.axes = AxisVis(arrowlen)
         scene.up=(0,0,1)
         scene.userzoom = True
         scene.autoscale = False
@@ -110,8 +121,8 @@ class OrbitVisualizer:
         self.umbra = None
         self.set_sundir(0)
         #sun = sphere(pos=self.sundir,radius=EARTH_r,color=color.yellow)
-        print(scene.autoscale)
-        print(scene.center, scene.range)
+        #print(scene.autoscale)
+        #print(scene.center, scene.range)
 
     def update(self,arg):
         """Update the display based on the value from the time slider """
@@ -138,11 +149,6 @@ class OrbitVisualizer:
                 break
                 self.orbit_done = True
 
-    def make_axes(self):
-        """Puts arrows to represent xyz axes on display.
-            green=x,red=y,blue=z"""
-        arrowlen = max(self.orbit.a / 5, EARTH_r * 1.3)
-        self.axes = AxisVis(arrowlen)
 
     def set_sundir(self,t):
         """Sets the direction of the sun/lighting tp where it should be at
@@ -163,4 +169,4 @@ class OrbitVisualizer:
 
 #my_vis = OrbitVisualizer(orbit=my_orbit2,trange=3600*24*5)
 my_orbit = ExtendedOrbit(e=0.3,a=geocentric/4,inclination=pi/4,ascend_node_long=pi/3,peri=pi/3)
-my_vis = OrbitVisualizer(orbit=my_orbit,trange=3600*24*365)
+my_vis = OrbitVisualizer(orbit=my_orbit,trange=3600*24)
