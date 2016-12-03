@@ -78,10 +78,10 @@ class OrbitVisualizer:
             show_axis - bool, display axis vectors or nah"""
     def __init__(self,orbit,trange,show_axis=True):
         self.orbit = orbit
-        self.L=100
-        self.Hgraph = 50
+        self.L = 200
+        self.Hgraph = 150
         self.trange = trange
-        self.window = window(width=2*(self.L+window.dwidth), height=200,
+        self.window = window(width=1.9*(self.L+window.dwidth), height=self.Hgraph,
            menus=True, title='Satellite Toolkit Controls',
            style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
         #earth sphere display
