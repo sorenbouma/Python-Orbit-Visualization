@@ -78,7 +78,7 @@ class EllipticOrbit1:
 
 
 class Earth:
-    """Earth! - Keep track of the rotation of the earth, and """
+    """Earth! - Keep track of the rotation of the earth, and points on it! """
     def __init__(self,att_i=0,rotation_axis=(0,0,1),points=None):
             self.rotation_axis = rotation_axis
             self.att_i = att_i #initial angle about rotation axis
@@ -98,7 +98,7 @@ class ExtendedOrbit(EllipticOrbit1):
         useful but not strictly related to the orbit of the satellite
         These include:
         >formatted date/time at any delta t in seconds
-        >battery(will remove soon)
+        >battery(will remove soon, should be part of a Satellite class)
         """
 
     def __init_(self,e,a,mu=EARTH_M*G,peri=0,inclination=0,start_datetime=datetime(2017,1,1),
@@ -127,5 +127,5 @@ class ExtendedOrbit(EllipticOrbit1):
         return (x,y,z)
 
     def radiance_at_coord(self,coord):
-        """Unfinished.s """
+        """Unfinished. """
         (x,y,z) = coord
