@@ -82,10 +82,10 @@ class OrbitVisualizer:
         self.Hgraph = 150
         self.trange = trange
         self.window = window(width=1.9*(self.L+window.dwidth), height=self.Hgraph,
-           menus=True, title='Satellite Toolkit Controls',
+           menus=True, title='Satellite Toolkit Controls!',
            style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
         #earth sphere display
-        scene.title='Satellite Toolkit Display'
+        scene.title='Satellite Toolkit Display!'
         rot_axis = (0,1.3*EARTH_r*np.sin(13.1*pi/180),1.3*EARTH_r*np.cos(13.1*pi/180),)
         #for debug
         a = arrow(axis=rot_axis,color=color.white,shaftwidth=EARTH_r/100)
