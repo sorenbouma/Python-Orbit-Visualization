@@ -79,10 +79,22 @@ class EllipticOrbit1:
 
 class Earth:
     """Earth! - Keep track of the rotation of the earth, and points on it! """
-    def __init__(self,att_i=0,rotation_axis=(0,0,1),points=None):
+    def __init__(self,att_i=0,rotation_axis=(0,0,1),points={'test':(0,pi/3)}):
             self.rotation_axis = rotation_axis
             self.att_i = att_i #initial angle about rotation axis
-            self.points = None
+            self.points = points #list of lattitude/longitude pairs
+            #these two attributes are for
+            self.change_angle = angle_between(rotation_axis,(0,0,1))
+            self.change_ax = tuple(np.cross((0,0,1),rotation_axis))
+            print(self.points)
+            if self.points is not None:
+                for k in self.points.keys():
+                    p = (EARTH_r,) + rad(self.points[k])
+                    print("point {} in polar coords: {}".format(k,p))
+                    p = spherical_to_cartesian1(p)
+                    p = vector(p).rotate(self.change_angle,self.change_ax)
+                    print("point {}  in plotting coords: {}".format(k,p))
+                    self.points[k] = p
 
     def attitude_at(self,t):
         """Get the angle of the earth at time t (assuming 24 hour days) """
@@ -90,7 +102,11 @@ class Earth:
         s_today = t - (t // day) * day #number of seconds passed today
         return s_today * 2 * pi / day  #angle
 
+    def point_coords_angle(self,angle,point):
 
+        (r,theta,phi) = spherical_to_cartesian1(self.points[point])
+        phi =  phi - angle
+        return spherical_to_cartesian(r,theta,phi)
 
 
 class ExtendedOrbit(EllipticOrbit1):
@@ -129,3 +145,8 @@ class ExtendedOrbit(EllipticOrbit1):
     def radiance_at_coord(self,coord):
         """Unfinished. """
         (x,y,z) = coord
+
+class Satellite:
+    """ """
+    def __init__(self,capacity,spanel_width):
+        self.A = spanel_width
