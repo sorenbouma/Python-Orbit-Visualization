@@ -77,7 +77,7 @@ def newtons_method(f,dfdx,x0,epsilon=1e-3):
         x_prev = x
         #print(dfdx(x).shape)
         n+=1
-        if n > 50:
+        if n > 20:
             break
         if np.abs(dfdx(x)) < 1e-5:
             print("WARNING: small second derivative,newtons method might be unstable")
