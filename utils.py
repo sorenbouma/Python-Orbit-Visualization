@@ -22,9 +22,20 @@ def mag(vec):
         s+= i**2
     return np.sqrt(s)
 
+
+def normalize(vec):
+    if isinstance(vec,tuple):
+        m=mag(vec)
+        for v in vec:
+            v = v / m
+        return vec
+    else:
+        return vec / mag(vec)
+
+
 def angle_between(v1,v2):
     """Returns the angle between 2 vectors in 3 space."""
-    return np.arccos(np.dot(v1,v2)/(mag(v1)+mag(v2)))
+    return np.arccos(np.dot(v1,v2)/(mag(v1)*mag(v2)))
 
 def polar_to_cartesian(r,phi):
     return (r*np.cos(phi),r*np.sin(phi))

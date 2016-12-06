@@ -171,6 +171,7 @@ class OrbitVisualizer:
         self.battery.SetValue(b)
         #self.batterytitle.SetLabel("Battery: {:.1f}%".format(b))
         self.set_sundir(t)
+        print(self.orbit.radiance_at_coord(co,t))
         #self.disp.forward = self.sat.axis
         #self.disp.up = self.sat.arrows['y'].axis
         #if self.show_umbra:

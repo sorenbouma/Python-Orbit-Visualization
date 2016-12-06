@@ -142,9 +142,25 @@ class ExtendedOrbit(EllipticOrbit1):
         z = 0.0
         return (x,y,z)
 
-    def radiance_at_coord(self,coord):
-        """Unfinished. """
-        (x,y,z) = coord
+    def radiance_at_coord(self,coord,t):
+        """I have no idea if this will work or not. """
+        #D is the distance from centre of earth to tip of its umbra.
+        sundir = np.asarray(self.sun_coords_at(t))
+        D = EARTH_r*SUN_TO_EARTH/(SUN_r-EARTH_r)
+        #this is like a vector from tip of umbra to centre of earth
+        umbra_tip = -D * sundir / (np.sqrt(sundir.dot(sundir)))
+        sat_to_tip = umbra_tip + np.asarray(coord)
+        print(np.arccos(sat_to_tip.dot(umbra_tip)/(mag(umbra_tip)*mag(sat_to_tip))))
+        a = angle_between(umbra_tip,sat_to_tip)
+        max_angle = np.arctan(EARTH_r/D)
+        print("current angle: {}, max angle: {}".format(a,max_angle))
+        if a > max_angle:
+            return 1362
+        else:
+            return 0
+
+
+
 
 class Satellite:
     """ """
