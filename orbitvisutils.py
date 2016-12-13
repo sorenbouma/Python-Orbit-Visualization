@@ -38,7 +38,7 @@ class EarthVis(Earth):
         self.att = self.att_i
         self.labels={}
         for k in self.points.keys():
-            self.labels[k] = label(pos=self.points[k],text=k,xoffset=20,yoffset=20)
+            self.labels[k] = label(pos=self.points[k],text=k,xoffset=20,yoffset=0,box=False,height=9)
 
     def set_angle(self,theta):
         """Sets the displayed earths orientation to theta(in radians),
@@ -49,15 +49,10 @@ class EarthVis(Earth):
         for k in self.points.keys():
             self.labels[k].pos = self.labels[k].pos.rotate(diff,self.rotation_axis)
 
-
-
     def set_to_time(self,t):
         """Sets the display to what it should look like at time t(seconds)"""
         theta = self.attitude_at(t)
         self.set_angle(theta)
-
-
-
 
 class AxisVis(frame):
     """Visualize a set of 3d axes as colored perpinecular arrows."""
@@ -81,11 +76,6 @@ class AxisVis(frame):
         self.pos = new_pos
         for obj in self.objexts:
             obj.pos = self.pos
-
-
-
-
-
 class OrbitVisualizer:
     """Class for visualizing 3d orbit around earth, using the ExtendedOrbit class.
         Parameters:
@@ -142,19 +132,21 @@ class OrbitVisualizer:
             self.axes = AxisVis(arrowlen)
         self.hide_umbra = wx.Button(self.panel,pos=(0,0),label='Toggle umbra')
         self.hide_umbra.Bind(wx.EVT_BUTTON,self.toggle_umbra)
+
+        self.hide_labels = wx.Button(self.panel,pos=(0,25),label='Toggle Labels')
+        self.hide_labels.Bind(wx.EVT_BUTTON,self.toggle_labels)
         self.disp.up=(0,0,1)
         self.disp.userzoom = True
         #self.disp.autoscale = False
         self.disp.autocenter = False
         self.orbit_done = False
         self.get_curve(20)
-        self.disp.range=(1.5e7,1.5e7,1.5e7);self.disp.center = (0,0,0);
+        self.disp.range=(self.orbit.a*1.9,)*3;self.disp.center = (0,0,0);
         self.umbra = None
         self.show_umbra =  True
         self.set_sundir(0)
-        #sun = sphere(pos=self.sundir,radius=EARTH_r,color=color.yellow)
-        #print(scene.autoscale)
-        #print(scene.center, scene.range)
+        self.comm=None
+
 
     def update(self,arg):
         """Update the display based on the value from the time slider """
@@ -168,14 +160,26 @@ class OrbitVisualizer:
         #self.trail.append(pos=self.sat.pos)
         self.earth.set_to_time(t)
         b = self.orbit.battery_at(t)
+
         self.battery.SetValue(b)
         #self.batterytitle.SetLabel("Battery: {:.1f}%".format(b))
         self.set_sundir(t)
-        self.satlabel.text = str(self.orbit.radiance_at_coord(co,t))
+        self.satlabel.text = "Radiance: " + str(self.orbit.radiance_at_coord(co,t))
         #self.disp.forward = self.sat.axis
         #self.disp.up = self.sat.arrows['y'].axis
-        #if self.show_umbra:
-        #    self.umbra.rotate(axis=(0,0,1),angle=0.01)
+        self.draw_comm_line(co)
+
+    def draw_comm_line(self,co):
+        pp=self.earth.labels['auckland'].pos
+        if self.comm is not None:
+            self.comm.visible = False
+        if passes_through_earth(co,pp):
+            self.comm = curve(pos=[co,pp],color=color.red)
+        else:
+            self.comm = curve(pos=[co,pp],color=color.green)
+
+        if self.show_umbra:
+            self.umbra.rotate(axis=(0,0,1),angle=0.01)
 
 
     def get_curve(self,resolution=20):
@@ -189,7 +193,6 @@ class OrbitVisualizer:
                 break
                 self.orbit_done = True
 
-
     def set_sundir(self,t):
         """Sets the direction of the sun/lighting tp where it should be at
             time t. """
@@ -199,25 +202,30 @@ class OrbitVisualizer:
         self.sunl2 = distant_light(direction=self.sundir,color=color.white)
         self.disp.lights=[self.sunl,self.sunl2]
         umbralength = EARTH_r * SUN_TO_EARTH/(EARTH_r-SUN_r)
-        #if self.umbra is None:
-        #    self.umbra = cone(pos=(0,0,0),radius=EARTH_r,length=-9*EARTH_r,
-        #                    opacity=0.1,axis=self.sundir, color = color.white)
-        #self.umbra.axis = self.sundir; self.umbra.length = umbralength
+        if self.umbra is None:
+            self.umbra = cone(pos=(0,0,0),radius=EARTH_r,length=-9*EARTH_r,
+                            opacity=0.3,axis=self.sundir, color = color.green)
+
+        self.umbra.axis = self.sundir; self.umbra.length = umbralength
 
     def toggle_umbra(self,evt):
         """Turn the umbra display` on/off """
         if self.show_umbra:
             self.show_umbra=False
-            self.umbra.opacity=0.0
+            self.umbra.visible=False
         else:
             self.show_umbra=True
-            self.umbra.opacity=0.1
+            self.umbra.visible=True
         print(self.show_umbra)
+
+    def toggle_labels(self,evt):
+        for x in self.earth.labels.keys():
+            self.earth.labels[x].visible = not self.earth.labels[x].visible
 
 
 #my_vis = OrbitVisualizer(orbit=my_orbit2,trange=3600*24*5)
 
-points = {'Evil undersea lair':(90,90),'target':(90,180),'auckland':(90+36.8,174.76)}
+points = {'random coordxn':(90,90),'target':(90,180),'auckland':(90+36.8,174.76)}
 
-my_orbit = ExtendedOrbit(e=0.3,a=geocentric/4,inclination=pi/4,ascend_node_long=pi/3,peri=pi/3)
-my_vis = OrbitVisualizer(orbit=my_orbit,trange=3600*24,points=points  )
+my_orbit = ExtendedOrbit(e=0.1,a=geocentric/4,inclination=-pi/9,ascend_node_long=pi/3,peri=pi/3)
+my_vis = OrbitVisualizer(orbit=my_orbit,trange=3600*24,points=points)

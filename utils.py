@@ -16,6 +16,7 @@ def random_colour():
     a = np.random.randint(low=0,high=3)
     return colourdict[a]
 
+
 def mag(vec):
     s=0
     for i in vec:
@@ -118,16 +119,37 @@ def rotation_matrix(u,theta):
     """Returns a matrix(3x3, not homogeneous coords)
         which represents a rotation of theta radians about
         unit vector u(3 space). """
-    R = ones((3,3)) * (1 - np.cos(theta))
+    R = np.ones((3,3)) * (1 - np.cos(theta))
     (l,m,n) = u
     for i in range(3):
         R[i,:] *= u[i]
         R[:,i] *= u[i]
     R += np.identity(3) * np.cos(theta)
-    #??? need to add those sin terms
+    R[1,0] += n * np.sin(theta)
+    R[2,0] += - m * np.sin(theta)
+    #??? need to add those sin terms/ cross product matrix
     return R
 
 def rotate(vector,axis,angle):
     """Rotates a vector angle radians about axis, all in nonhomogensous coordinates"""
     v=np.matmul(rotation_matrix(axis,angle),vector)
     return tuple(v)
+
+
+def passes_through_earth(x1,x2):
+    """Returns true if a line between coordinates x1 and x2 passes through the earth.
+        x1,x2 should be ndarrays.
+        http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html """
+    #centre of earth/ is origin
+    x0 = np.zeros((3,))
+    #make sure we have numpy arrays
+    x1 = np.asarray(x1)
+    x2 = np.asarray(x2)
+    t = -np.dot((x1 - x0), (x2 - x1))/(mag(x2-x1)**2)
+    print(t)
+    #If there is a line going from x1 to x2, this gives the...
+    # ...minimum distance of this line to the origin/earths center.
+    if not(t >= 1 or t < 0):
+        return True
+    else:
+        return False

@@ -148,17 +148,17 @@ class ExtendedOrbit(EllipticOrbit1):
         sundir = np.asarray(self.sun_coords_at(t))
         D = EARTH_r*SUN_TO_EARTH/(SUN_r-EARTH_r)
         #this is like a vector from tip of umbra to centre of earth
-        umbra_tip = -D * sundir / (np.sqrt(sundir.dot(sundir)))
+        umbra_tip = -D * sundir / mag(sundir)
+        #this is a vector from the tip of the umbra to the satellite
         sat_to_tip = umbra_tip + np.asarray(coord)
-        print(np.arccos(sat_to_tip.dot(umbra_tip)/(mag(umbra_tip)*mag(sat_to_tip))))
+        #print(np.arccos(sat_to_tip.dot(umbra_tip)/(mag(umbra_tip)*mag(sat_to_tip))))
         a = angle_between(umbra_tip,sat_to_tip)
         max_angle = np.arctan(EARTH_r/D)
-        print("current angle: {}, max angle: {}".format(a,max_angle))
-        if a > max_angle:
-            return 1362
-        else:
+        #print("current angle: {}, max angle: {}".format(a,max_angle))
+        if passes_through_earth(sundir,coord) and a < max_angle:
             return 0
-
+        else:
+            return 1366
 
 
 
