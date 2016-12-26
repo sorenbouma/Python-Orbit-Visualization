@@ -1,6 +1,6 @@
 import numpy as np
 from utils import *
-from datetime import datetime
+from datetime import datetime, timedelta
 #SI UNITS FOR EVERYTHING!
 global G, pi, EARTH_M, EARTH_r, SUN_TO_EARTH, SUN_r
 G = 6.674e-11# gravit. constant in metres cubed per (kilogram second squared)
@@ -79,13 +79,14 @@ class EllipticOrbit1:
 
 class Earth:
     """Earth! - Keep track of the rotation of the earth, and points on it! """
-    def __init__(self,att_i=0,rotation_axis=(0,0,1),points={'test':(0,pi/3)}):
+    def __init__(self,att_i=0,rotation_axis=(0,0,1),points={'test':(0,pi/3)},start_datetime=datetime(2018,1,1)):
             self.rotation_axis = rotation_axis
             self.att_i = att_i #initial angle about rotation axis
             self.points = points #list of lattitude/longitude pairs
             #these two attributes are for
             self.change_angle = angle_between(rotation_axis,(0,0,1))
             self.change_ax = tuple(np.cross((0,0,1),rotation_axis))
+            self.start_datetime = start_datetime
             print(self.points)
             if self.points is not None:
                 for k in self.points.keys():
@@ -107,6 +108,10 @@ class Earth:
         (r,theta,phi) = spherical_to_cartesian1(self.points[point])
         phi =  phi - angle
         return spherical_to_cartesian(r,theta,phi)
+
+    def datetime_at(self,t):
+        td=timedelta(seconds=t)
+        return str(self.start_datetime + td)
 
 
 class ExtendedOrbit(EllipticOrbit1):
@@ -143,7 +148,7 @@ class ExtendedOrbit(EllipticOrbit1):
         return (x,y,z)
 
     def radiance_at_coord(self,coord,t):
-        """I have no idea if this will work or not. """
+        """Pretty sure this works properly"""
         #D is the distance from centre of earth to tip of its umbra.
         sundir = np.asarray(self.sun_coords_at(t))
         D = EARTH_r*SUN_TO_EARTH/(SUN_r-EARTH_r)
@@ -159,10 +164,3 @@ class ExtendedOrbit(EllipticOrbit1):
             return 0
         else:
             return 1366
-
-
-
-class Satellite:
-    """ """
-    def __init__(self,capacity,spanel_width):
-        self.A = spanel_width

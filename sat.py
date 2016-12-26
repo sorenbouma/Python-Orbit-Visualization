@@ -1,0 +1,86 @@
+from utils import *
+from visual import *
+import numpy as np
+
+class AxisVis(frame):
+    """Visualize a set of 3d axes as colored perpinecular arrows."""
+    def __init__(self,arrowlen,shaftwidth='auto',pos=(0,0,0),standard=True):
+        frame.__init__(self)
+        if standard:
+            x=(arrowlen,0,0)
+            y=(0,arrowlen,0)
+            z=(0,0,arrowlen)
+        self.pos = pos
+        if shaftwidth == 'auto':
+            shaftwidth = max(arrowlen/100,2e4)
+        self.arrows={}
+        self.arrows['x'] = arrow(frame=self,axis=x,color=color.green)
+        self.arrows['y'] = arrow(frame=self,axis=y,color=color.red)
+        self.arrows['z'] = arrow(frame=self,axis=z,color=color.blue)
+        for a in self.arrows.values():
+            a.shaftwidth = shaftwidth
+        #self.axis = (1,0,0) #x axis
+    def set_pos(self,new_pos):
+        """Moves the arrows to a new position. """
+        self.pos = new_pos
+        for obj in self.objects:
+            obj.pos = self.pos
+
+
+
+class SatVis(AxisVis):
+    """This is for visualizing the orientation and field of view of a satellite.
+        probably a temporary class.? """
+    def __init__(self,gain,length,arrowlen,shaftwidth='auto',pos=(0,0,0),standard=True):
+        AxisVis.__init__(self,arrowlen,shaftwidth,pos,standard)
+        r = np.tan(gain/2) * length
+        a = np.asarray(self.arrows['x'].axis)
+        a/=mag(a)
+        print("A:")
+        print(a)
+        self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.2, pos=a*length,color=color.orange)
+        #self.fov_cone = cone(frame=self,pos=self.pos - a * length,length=length,radius=r,axis=a)
+
+class Satellite:
+    """Satellite utility class - at the moment I do NOT want this to 'own' an orbit.
+        If it can interact with many orbits, it will be more usable for transfer orbits/
+        numerical simulated chaotic orbits or whatever"""
+    def __init__(self,capacity,orientation=(1,0,0),timestep=1):
+        self.current_orient = orientation
+        self.efficiency=0.2
+        self.area = 0.3 * 0.1 #area of solar panel in square metres
+        self.timestep = timestep
+        self.currently_collecting = False
+        self.currently_transmitting=False
+        self.capacity = capacity
+        self.current_battery = capacity
+
+    def energy_recieved(self,orbit,t):
+        """Gives the energy recieved at time t with orbit orbit. Think this should work?"""
+        co = orbit.coords_at(t)
+        radiance=orbit.radiance_at_coord(orbit.coords_at(t),t)
+        sundir = orbit.sun_coords_at(t)
+        sat_to_sun = sundir - co
+        p = np.dot(np.asarray(sundir),np.asarray(self.current_orient))
+        p *= self.efficiency
+        p *= self.area
+        e = p * self.timestep
+        return e
+
+    def energy_used(self,t):
+        p = 1 #1 watt intermittent power use
+        if self.currently_transmitting:
+            p += 3
+        if self.currently_collecting:
+            p += 2
+        e = p * self.timestep
+        return e
+
+    def power_balance(self,orbit,t):
+        e_in = self.energy_recieved(orbit,t)
+        e_out = self.energy_used(t)
+        self.current_battery += (e_in - e_out)
+        if self.current_battery > self.capacity:
+            self.current_battery = self.capacity
+        if self.current_battery <= 0:
+            raise ValueError("OUT OF BATTERY OH SHIT")

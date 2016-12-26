@@ -1,6 +1,8 @@
 from orbit import *
 from visual import *
 from visual.graph import *
+from sat import *
+
 import wx
 import numpy as np
 from datetime import datetime
@@ -54,28 +56,8 @@ class EarthVis(Earth):
         theta = self.attitude_at(t)
         self.set_angle(theta)
 
-class AxisVis(frame):
-    """Visualize a set of 3d axes as colored perpinecular arrows."""
-    def __init__(self,arrowlen,shaftwidth='auto',pos=(0,0,0),standard=True):
-        frame.__init__(self)
-        if standard:
-            x=(arrowlen,0,0)
-            y=(0,arrowlen,0)
-            z=(0,0,arrowlen)
-        self.pos = pos
-        shaftwidth = max(arrowlen/100,2e4)
-        self.arrows={}
-        self.arrows['x'] = arrow(frame=self,axis=x,color=color.green)
-        self.arrows['y'] = arrow(frame=self,axis=y,color=color.red)
-        self.arrows['z'] = arrow(frame=self,axis=z,color=color.blue)
-        for a in self.arrows.values():
-            a.shaftwidth = shaftwidth
-        #self.axis = (1,0,0) #x axis
-    def set_pos(self,new_pos):
-        """Moves the arrows to a new position. """
-        self.pos = new_pos
-        for obj in self.objexts:
-            obj.pos = self.pos
+
+
 class OrbitVisualizer:
     """Class for visualizing 3d orbit around earth, using the ExtendedOrbit class.
         Parameters:
@@ -104,6 +86,8 @@ class OrbitVisualizer:
         #satellite display
         #self.sat = box(pos=self.orbit.r0,size=(1e6,1e6,1e6))
         self.sat = AxisVis(pos=self.orbit.r0,arrowlen=5e5)
+        self.sat = SatVis(length=5e6,gain=1.6,pos=self.orbit.r0,arrowlen=5e5)
+
         self.satlabel = label(
                 pos=self.sat.pos,
                 text='Doomsday device',
@@ -117,7 +101,7 @@ class OrbitVisualizer:
             minValue = 0,
             maxValue = self.trange,
             size=(self.L * 0.9,20))
-        self.timeslider.Bind(wx.EVT_SCROLL,self.update)
+        self.timeslider.Bind(wx.EVT_SCROLL,self.slider_update)
         self.timeslider.SetValue(0)
         self.battery = wx.Gauge(self.window.panel,
             name='Battery',
@@ -125,7 +109,11 @@ class OrbitVisualizer:
             pos=(0.6*self.L,0.1*self.H),
             size=(self.L/4,20))
         self.battery.SetValue(100)
-        #self.batterytitle = wx.StaticText(self.window.panel,-1,'Battery: 100%',pos=(0.6*self.L,0.2*self.L))
+        self.batterytitle = wx.StaticText(self.window.panel,-1,'Battery: 100%',pos=(0.02*self.L,0.2*self.L))
+        self.batterytitle.SetForegroundColour((255,0,0))
+        self.batterytitle.SetBackgroundColour((0,0,255))
+        self.hud = label(pos=(0,0,0),xoffset=-310,yoffset=320,text='test_text',line=False)
+
         #self.batterytitle = label(pos=(0,0,0),text='testing testing 123')
         if show_axis:
             arrowlen = max(self.orbit.a / 5, EARTH_r * 1.3)
@@ -133,29 +121,37 @@ class OrbitVisualizer:
         self.hide_umbra = wx.Button(self.panel,pos=(0,0),label='Toggle umbra')
         self.hide_umbra.Bind(wx.EVT_BUTTON,self.toggle_umbra)
 
+
         self.hide_labels = wx.Button(self.panel,pos=(0,25),label='Toggle Labels')
         self.hide_labels.Bind(wx.EVT_BUTTON,self.toggle_labels)
+
+        self.animate_button = wx.Button(self.panel,pos=(0,50),label='Animate orbit')
+        self.animate_button.Bind(wx.EVT_BUTTON,self.animate)
         self.disp.up=(0,0,1)
         self.disp.userzoom = True
         #self.disp.autoscale = False
         self.disp.autocenter = False
         self.orbit_done = False
-        self.get_curve(20)
+        self.get_curve(100)
         self.disp.range=(self.orbit.a*1.9,)*3;self.disp.center = (0,0,0);
         self.umbra = None
-        self.show_umbra =  True
         self.set_sundir(0)
-        self.comm=None
+        self.comm={}
+        self.umbra.visible = False
+        #self.animate(50)
 
 
-    def update(self,arg):
+    def slider_update(self,arg):
+        t = arg.GetPosition()
+        self.update(t)
+
+    def update(self,t):
         """Update the display based on the value from the time slider """
         rate(100)
-        t = arg.GetPosition()
         t = float(t)
         co = self.orbit.t_to_xyz(t)
         self.sat.pos = co
-        self.sat.axis = -1*np.asarray(co)
+        self.sat.axis = -1 * np.asarray(co)
         self.satlabel.pos = co
         #self.trail.append(pos=self.sat.pos)
         self.earth.set_to_time(t)
@@ -167,20 +163,22 @@ class OrbitVisualizer:
         self.satlabel.text = "Radiance: " + str(self.orbit.radiance_at_coord(co,t))
         #self.disp.forward = self.sat.axis
         #self.disp.up = self.sat.arrows['y'].axis
-        self.draw_comm_line(co)
+        self.draw_comm_lines(co)
+        self.hud.text = "Current date/time: {}".format(self.earth.datetime_at(t))
 
-    def draw_comm_line(self,co):
-        pp=self.earth.labels['auckland'].pos
-        if self.comm is not None:
-            self.comm.visible = False
-        if passes_through_earth(co,pp):
-            self.comm = curve(pos=[co,pp],color=color.red)
-        else:
-            self.comm = curve(pos=[co,pp],color=color.green)
 
-        if self.show_umbra:
-            self.umbra.rotate(axis=(0,0,1),angle=0.01)
 
+
+    def draw_comm_lines(self,co):
+
+        for place in self.earth.labels.keys():
+            pass
+            if place in self.comm.keys():
+                self.comm[place].visible = False
+                del self.comm[place]
+            place_coord = self.earth.labels[place].pos
+            if not passes_through_earth(co,place_coord):
+                self.comm[place] = curve(pos=[co, place_coord],color=color.green)
 
     def get_curve(self,resolution=20):
         """Plot a curve of the satellites orbit. """
@@ -210,22 +208,31 @@ class OrbitVisualizer:
 
     def toggle_umbra(self,evt):
         """Turn the umbra display` on/off """
-        if self.show_umbra:
-            self.show_umbra=False
-            self.umbra.visible=False
-        else:
-            self.show_umbra=True
-            self.umbra.visible=True
-        print(self.show_umbra)
+        self.umbra.visible = not self.umbra.visible
 
     def toggle_labels(self,evt):
+        """Turn the comm point labels on/off """
         for x in self.earth.labels.keys():
             self.earth.labels[x].visible = not self.earth.labels[x].visible
 
+    def animate(self,evt,timestep=50):
+        print('animating')
+        t = 0
+        while t < self.trange:
+            rate(30)
+            self.update(t)
+            t += timestep
 
-#my_vis = OrbitVisualizer(orbit=my_orbit2,trange=3600*24*5)
 
-points = {'random coordxn':(90,90),'target':(90,180),'auckland':(90+36.8,174.76)}
 
-my_orbit = ExtendedOrbit(e=0.1,a=geocentric/4,inclination=-pi/9,ascend_node_long=pi/3,peri=pi/3)
-my_vis = OrbitVisualizer(orbit=my_orbit,trange=3600*24,points=points)
+
+
+
+
+v= tuple(np.random.randint(low=0,high=360,size=(2,)))
+print(v)
+
+#points = {'random coordxn':v,'target':(90,180),'auckland':(90+36.8,174.76),'yurop':(45,21)}
+points=random_coordinates(10)
+my_orbit = ExtendedOrbit(e=0.01,a=EARTH_r + 1e6,inclination=1.5,ascend_node_long=pi/3,peri=pi/3)
+my_vis = OrbitVisualizer(orbit=my_orbit,trange=3600*24*5,points=points)
