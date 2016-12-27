@@ -20,11 +20,11 @@ class AxisVis(frame):
         for a in self.arrows.values():
             a.shaftwidth = shaftwidth
         #self.axis = (1,0,0) #x axis
-    def set_pos(self,new_pos):
-        """Moves the arrows to a new position. """
-        self.pos = new_pos
-        for obj in self.objects:
-            obj.pos = self.pos
+    #def set_pos(self,new_pos):
+    #    """Moves the arrows to a new position. """
+    #    self.pos = new_pos
+    #    for obj in self.objects:
+    #        obj.pos = self.pos
 
 
 
@@ -38,22 +38,34 @@ class SatVis(AxisVis):
         a/=mag(a)
         print("A:")
         print(a)
-        self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.2, pos=a*length,color=color.orange)
+        self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.2, pos=a*length,color=color.orange,
+                        )
         #self.fov_cone = cone(frame=self,pos=self.pos - a * length,length=length,radius=r,axis=a)
 
 class Satellite:
     """Satellite utility class - at the moment I do NOT want this to 'own' an orbit.
         If it can interact with many orbits, it will be more usable for transfer orbits/
         numerical simulated chaotic orbits or whatever"""
-    def __init__(self,capacity,orientation=(1,0,0),timestep=1):
+    def __init__(self,capacity,orbit,orientation=(1,0,0),timestep=1,
+                mass=8,dim=(0.1,0.2,0.3),antenna_gain=0.3):
         self.current_orient = orientation
+        self.current_coord = (0,0,0)
         self.efficiency=0.2
         self.area = 0.3 * 0.1 #area of solar panel in square metres
         self.timestep = timestep
+        self.antenna_gain = antenna_gain
         self.currently_collecting = False
-        self.currently_transmitting=False
+        self.currently_transmitting = {}#dict to store all locations tras
         self.capacity = capacity
         self.current_battery = capacity
+        self.mass = mass #satellite mass in kg
+        self.dim = np.asarray(dim)#dimensions of cuboid satellite in metres
+        (h,w,d) = self.dim
+        #rotational inertia tensor and its inverse for numerical simulation purposes
+        #won't be using this for a while...
+        self.I = np.zeros(3)
+        np.fill_diagonal(self.I, self.mass / 12 * (w**2 + d**2, d**2 + h**2, w**2 + h**2))
+        self.I_inverrse = np.inv(self.I)
 
     def energy_recieved(self,orbit,t):
         """Gives the energy recieved at time t with orbit orbit. Think this should work?"""
@@ -69,10 +81,10 @@ class Satellite:
 
     def energy_used(self,t):
         p = 1 #1 watt intermittent power use
-        if self.currently_transmitting:
-            p += 3
+        if self.currently_transmitting != {}:
+            p += 5
         if self.currently_collecting:
-            p += 2
+            p += 3
         e = p * self.timestep
         return e
 
@@ -84,3 +96,19 @@ class Satellite:
             self.current_battery = self.capacity
         if self.current_battery <= 0:
             raise ValueError("OUT OF BATTERY OH SHIT")
+        return e_in, e_out
+
+    def communication_possible(self,coord,t):
+        """Determines if the satellite can make contact with a given coord"""
+        sat_to_coord = coord - self.current_coord#vector from satellite to coord
+        if angle_between(self.current_orient, sat_to_coord) <= self.gain/2:
+            if not passes_through_earth(self.current_coord,coord):
+                return True
+        return False
+
+    def simulate_comms(self,earth,t):
+        """ """
+        self.currently_transmitting = {}
+        for place in earth.labels.keys():
+            if self.communication_possible(place,t):
+                self.currently_transmitting[key] = earth.labels[key]

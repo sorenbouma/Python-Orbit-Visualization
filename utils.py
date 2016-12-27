@@ -138,7 +138,7 @@ def rotate(vector,axis,angle):
 
 def passes_through_earth(x1,x2):
     """Returns true if a line between coordinates x1 and x2 passes through the earth.
-        x1,x2 should be ndarrays.
+        x1,x2 should be ndarrays. Pretty sure it works.
         see:
         http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html """
     #centre of earth/ is origin

@@ -170,9 +170,8 @@ class OrbitVisualizer:
 
 
     def draw_comm_lines(self,co):
-
+        """Should delete this soon. """
         for place in self.earth.labels.keys():
-            pass
             if place in self.comm.keys():
                 self.comm[place].visible = False
                 del self.comm[place]

@@ -15,7 +15,7 @@ class EllipticOrbit1:
     """Elliptic orbit around the earth..
         """
     def __init__(self,e,a,mu=EARTH_M*G,peri=0,inclination=0,
-                    ascend_node_long=0,mean_anomaly=0,trange=3600*24):
+                    ascend_node_long=0,mean_anomaly=0,trange=3600*24,timestep=1):
 
         self.mu = mu
         self.e=e
@@ -23,6 +23,7 @@ class EllipticOrbit1:
         self.a = a
         self.t = np.linspace(0,trange)# whats this for again?
         self.T = 2 * pi * np.sqrt(self.a ** 3 / (mu))
+        self.timestep = timestep
         self.inclination = inclination
         self.ascend_node_long = ascend_node_long
         self.mean_anomaly = mean_anomaly
@@ -123,7 +124,7 @@ class ExtendedOrbit(EllipticOrbit1):
         """
 
     def __init_(self,e,a,mu=EARTH_M*G,peri=0,inclination=0,start_datetime=datetime(2017,1,1),
-                    ascend_node_long=0,mean_anomaly=0 ):
+                    ascend_node_long=0,mean_anomaly=0,timestep=1):
         EllipticOrbit1.__init__(self,e,a,mu,peri,inclination,ascend_node_long,mean_anomaly)
         self.start_datetime = start_datetime
 
@@ -137,10 +138,12 @@ class ExtendedOrbit(EllipticOrbit1):
         return str(self.start_datetime + td)
 
     def battery_at(self,t):
+        """replace this soon """
         return (1-1e-5) ** t * 100
 
     def sun_coords_at(self,t):
-        """Gets the suns coords at time t. Assumes circular orbit because I suck """
+        """Gets the suns coords at time t. Assumes circular orbit because I suck.
+            Not yet synced up with the almanac so won't be accurate to date."""
         earthT = 365.25*24*3600 # period of earths orbit in seconds
         x = SUN_TO_EARTH * np.cos(t * 2 * 3.141 / earthT)
         y = SUN_TO_EARTH * np.sin(t * 2 * 3.141 / earthT)
