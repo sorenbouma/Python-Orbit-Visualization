@@ -29,7 +29,7 @@ def normalize(vec):
         m=mag(vec)
         for v in vec:
             v = v / m
-        return vec
+        return np.asarray(vec)
     else:
         return vec / mag(vec)
 

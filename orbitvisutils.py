@@ -26,6 +26,7 @@ class EarthVis(Earth):
     """Adds visualization to the Earth class(found in orbit.py)."""
     def __init__(self,att_i,rotation_axis,points={'test':(pi/3,pi/5)}):
         Earth.__init__(self,att_i,rotation_axis,points)
+        
         self.orb = sphere(material=materials.earth,radius=EARTH_r,)
         self.orb.rotate(angle=pi/2,axis=(0,0,1))
         self.orb.rotate(angle=pi/2,axis=(0,1,0))
@@ -77,7 +78,7 @@ class CompleteVisualizer:
             show_axis - bool, display axis vectors or nah
             L - width of display in pixels
             H - height of disp;ay in pexels."""
-    def __init__(self,orbit,trange,points=None,show_axis=True,L=1260,H=800):
+    def __init__(self,orbit,trange,points=None,show_axis=True,L=1260,H=800,timestep=50):
         self.orbit = orbit
         self.L = L
         self.H = H
@@ -94,17 +95,10 @@ class CompleteVisualizer:
         a = arrow(axis=rot_axis,color=color.white,shaftwidth=EARTH_r/100)
         self.earth = EarthVis(0,rot_axis,points=points)
         #satellite display
-        #self.sat = box(pos=self.orbit.r0,size=(1e6,1e6,1e6))
-        self.sat = AxisVis(pos=self.orbit.r0,arrowlen=5e5)
-        self.sat = SatVis(length=5e6,gain=1.6,pos=self.orbit.r0,arrowlen=5e5)
+        #self.sat = AxisVis(pos=self.orbit.r0,arrowlen=5e5)
+        #self.sat = SatVis(length=5e6,gain=1.6,pos=self.orbit.r0,arrowlen=5e5)
+        self.sat = SatelliteVis(self.orbit,self.earth,timestep=timestep)
 
-        self.satlabel = label(
-                pos=self.sat.pos,
-                text='Doomsday device',
-                box=False,
-                opacity=0.07,
-                yoffset=20,
-                xoffset=20)
         self.trail = plot_orbit(orbit=self.orbit)
         self.timeslider = wx.Slider(self.window.panel,
             pos=(0.1*self.L,0.9*self.H),
@@ -121,7 +115,6 @@ class CompleteVisualizer:
         self.batterytitle = wx.StaticText(self.window.panel,-1,'Battery: 100%',pos=(0.02*self.L,0.2*self.L))
         self.batterytitle.SetForegroundColour((255,0,0))
         self.batterytitle.SetBackgroundColour((0,0,255))
-        self.hud = label(pos=(0,0,0),xoffset=-310,yoffset=320,text='test_text',line=False)
 
         #self.batterytitle = label(pos=(0,0,0),text='testing testing 123')
         if show_axis:
@@ -144,8 +137,8 @@ class CompleteVisualizer:
         self.set_sundir(0)
         self.comm={}
         self.umbra.visible = False
-        #self.animate(50)
-
+        self.toggle_labels()
+        self.animate()
 
     def slider_update(self,arg):
         t = arg.GetPosition()
@@ -155,22 +148,21 @@ class CompleteVisualizer:
         """Update the display based on the value from the time slider """
         rate(100)
         t = float(t)
-        co = self.orbit.t_to_xyz(t)
-        self.sat.pos = co
-        self.sat.axis = -1 * np.asarray(co)
-        self.satlabel.pos = co
+        #co = self.orbit.t_to_xyz(t)
+        #self.sat.pos = co
+        #self.sat.axis = -1 * np.asarray(co)
+        #self.satlabel.pos = co
         #self.trail.append(pos=self.sat.pos)
         self.earth.set_to_time(t)
-        b = self.orbit.battery_at(t)
+        #b = self.orbit.battery_at(t)
 
-        self.battery.SetValue(b)
+        #self.battery.SetValue(b)
         #self.batterytitle.SetLabel("Battery: {:.1f}%".format(b))
         self.set_sundir(t)
-        self.satlabel.text = "Radiance: " + str(self.orbit.radiance_at_coord(co,t))
         #self.disp.forward = self.sat.axis
         #self.disp.up = self.sat.arrows['y'].axis
-        self.draw_comm_lines(co)
-        self.hud.text = "Current date/time: {}".format(self.earth.datetime_at(t))
+        #self.draw_comm_lines(co)
+        #self.hud.text = "Current date/time: {}".format(self.earth.datetime_at(t))
 
     def draw_comm_lines(self,co):
         """Should delete this soon. """
@@ -201,18 +193,19 @@ class CompleteVisualizer:
         """Turn the umbra display` on/off """
         self.umbra.visible = not self.umbra.visible
 
-    def toggle_labels(self,evt):
+    def toggle_labels(self,evt=None):
         """Turn the comm point labels on/off """
         for x in self.earth.labels.keys():
             self.earth.labels[x].visible = not self.earth.labels[x].visible
 
-    def animate(self,evt,timestep=50):
+    def animate(self,evt=None):
+        """Replace soon. """
         print('animating')
         t = 0
         while t < self.trange:
-            rate(30)
-            self.update(t)
-            t += timestep
+            self.sat.perform_timestep()
+            self.update(self.sat.t)
+            t += self.sat.timestep
 
 
 
@@ -220,6 +213,6 @@ v= tuple(np.random.randint(low=0,high=360,size=(2,)))
 print(v)
 
 #points = {'random coordxn':v,'target':(90,180),'auckland':(90+36.8,174.76),'yurop':(45,21)}
-points=random_coordinates(10)
+points=random_coordinates(100)
 my_orbit = ExtendedOrbit(e=0.01,a=EARTH_r + 1e6,inclination=1.5,ascend_node_long=pi/3,peri=pi/3)
-my_vis = CompleteVisualizer(orbit=my_orbit,trange=3600*24*5,points=points)
+my_vis = CompleteVisualizer(orbit=my_orbit,trange=3600*24*5,points=points,timestep=10)

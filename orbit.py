@@ -27,7 +27,7 @@ class EllipticOrbit1:
         self.inclination = inclination
         self.ascend_node_long = ascend_node_long
         self.mean_anomaly = mean_anomaly
-        self.r0 = self.t_to_xyz(0)
+        self.r0 = np.asarray(self.t_to_xyz(0))
 
 
     def time_to_tau(self,t):
@@ -66,7 +66,7 @@ class EllipticOrbit1:
 
         z = r_i * np.sin(phi_i + w) * np.sin(i)
 
-        return(x,y,z)
+        return (x,y,z)
 
     def t_to_xyz(self,t):
         """Returns the xyz coords at a given time in seconds. """
@@ -79,7 +79,7 @@ class EllipticOrbit1:
 
 
 class Earth:
-    """Earth! - Keep track of the rotation of the earth, and points on it! """
+    """Earth! - Get coords for the rotation of the earth, and points on it! """
     def __init__(self,att_i=0,rotation_axis=(0,0,1),points={'test':(0,pi/3)},start_datetime=datetime(2018,1,1)):
             self.rotation_axis = rotation_axis
             self.att_i = att_i #initial angle about rotation axis
@@ -105,7 +105,7 @@ class Earth:
         return s_today * 2 * pi / day  #angle
 
     def point_coords_angle(self,angle,point):
-
+        """ """
         (r,theta,phi) = spherical_to_cartesian1(self.points[point])
         phi =  phi - angle
         return spherical_to_cartesian(r,theta,phi)
