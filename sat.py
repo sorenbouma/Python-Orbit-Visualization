@@ -29,8 +29,6 @@ class SatVis(AxisVis):
         r = np.tan(gain/2) * length
         a = np.asarray(self.arrows['x'].axis)
         a/=mag(a)
-        print("A:")
-        print(a)
         self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.2, pos=a*length,color=color.orange,
                         )
         #self.fov_cone = cone(frame=self,pos=self.pos - a * length,length=length,radius=r,axis=a)
@@ -45,22 +43,17 @@ class Satellite(object):
         self.current_orient = orientation
         self.current_coord = self.orbit.r0
         self.spanel_offset = np.asarray((-1,0,1))
-        self.efficiency = 0.2
+        self.efficiency = 0.21
         self.area = 0.3 * 0.1 #area of solar panel in square metres
         self.timestep = timestep
         self.antenna_gain = antenna_gain
-        self.currently_collecting = False
+        self.currently_collecting = True
         self.currently_transmitting = {}#dict to store all locations tras
         self.capacity = capacity
         self.current_battery = capacity
         self.mass = mass #satellite mass in kg
         self.dim = np.asarray(dim)#dimensions of cuboid satellite in metres
-        (h,w,d) = self.dim
-        #rotational inertia tensor and its inverse for numerical simulation purposes
-        #won't be using this for a while...
-        #self.I = np.zeros(3)
-        #np.fill_diagonal(self.I, self.mass / 12 * (w**2 + d**2, d**2 + h**2, w**2 + h**2))
-        #self.I_inverrse = np.inv(self.I)
+
 
     def energy_recieved(self):
         """Gives the energy recieved at time t with orbit orbit. Think this should work?"""
@@ -69,15 +62,19 @@ class Satellite(object):
         sat_to_sun = sundir - self.current_coord
         solar_orient = self.current_orient + self.spanel_offset
         p = np.dot(sundir,solar_orient)/(mag(sundir)*mag(solar_orient))
+        #p = np.cos(angle_between(sundir,solar_orient))
+        #p=1
         p=abs(p)
-        print("dot product:{}".format(p))
+        p*= radiance
+        #print("dot product:{}".format(p))
         p *= self.efficiency
         p *= self.area
+        #print("final power:"+str(p))
         e = p * self.timestep
         return e
 
     def energy_used(self):
-        p = 1 #1 watt intermittent power use
+        p = 4 #1 watt intermittent power use
         if self.currently_transmitting != {}:
             p += 5
         if self.currently_collecting:
@@ -89,13 +86,14 @@ class Satellite(object):
         self.e_in = self.energy_recieved()
 
         self.e_out = self.energy_used()
-        print("e_in: {}, e_out: {}".format(self.e_in,self.e_out))
+        #print("e_in: {}, e_out: {}".format(self.e_in,self.e_out))
         self.current_battery += (self.e_in - self.e_out)
         #print(self.current_battery)
         if self.current_battery > self.capacity:
             self.current_battery = self.capacity
         if self.current_battery <= 0:
             print("OUT OF BATTERY")
+            pass
 
     def communication_possible(self,coord):
         """Determines if the satellite can make contact with a given coord"""
@@ -110,9 +108,9 @@ class Satellite(object):
         """simulate_comms """
         self.currently_transmitting = {}
         for place in self.earth.labels.keys():
-            place_coord = self.earth.labels[place].pos
+            place_coord = self.earth.frame.frame_to_world(self.earth.labels[place].pos)
             if self.communication_possible(place_coord):
-                self.currently_transmitting[place] = self.earth.labels[place]
+                self.currently_transmitting[place] = place_coord
 
     def perform_timestep(self):
         """do one timestep and update the satellite's state. """
@@ -121,8 +119,8 @@ class Satellite(object):
         #TEMPORARY - REPLACE WITH POLICY SETTER SOON.
         #(this just always points to earth's center)
         self.current_orient = np.asarray(self.current_coord) * -1
-        self.t += self.timestep
         self.power_balance()
+        self.t += self.timestep
 
 class SatelliteVis(Satellite):
     def __init__(self,orbit,earth,capacity=35400,orientation=(1,0,0),timestep=1,
@@ -140,19 +138,21 @@ class SatelliteVis(Satellite):
         self.vis.pos = self.current_coord
         self.vis.axis = self.current_orient
         #delete any lines from other timesteps
-        for p in self.comm_lines.values():
-            p.visible = False
         #draw line from satellite to any points making communication
+        for line in self.comm_lines.values():
+            line.visible=False
+
         for place in self.currently_transmitting.keys():
-            place_coord = self.earth.labels[place].pos
+            place_coord = self.currently_transmitting[place]
             self.comm_lines[place] = curve(pos=[self.current_coord, place_coord],
-                                            color=color.magenta)
+                                            color=color.cyan)
         self.hud.text = self.get_display_string()
 
     def get_display_string(self):
         disp_string = 'Date/time: ' + str(self.earth.datetime_at(self.t))
         disp_string += "\nBattery: {:.1f}%".format(self.current_battery/self.capacity * 100)
-        disp_string += "\nRecieved power {:.1f} from solar panel".format(self.e_in)
+        disp_string += "\nPower in: {:.1f} W".format(self.e_in/self.timestep)
+        disp_string += "\nPower used: {} W".format(self.e_out / self.timestep)
 
         if self.currently_transmitting == {}:
             disp_string += "\nNo communication with earth."
@@ -160,4 +160,5 @@ class SatelliteVis(Satellite):
             disp_string += "\nTransmitting data to points:"
             for place in self.currently_transmitting.keys():
                 disp_string += "\n  " + place
+
         return disp_string

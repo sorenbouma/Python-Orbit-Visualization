@@ -80,23 +80,23 @@ class EllipticOrbit1:
 
 class Earth:
     """Earth! - Get coords for the rotation of the earth, and points on it! """
-    def __init__(self,att_i=0,rotation_axis=(0,0,1),points={'test':(0,pi/3)},start_datetime=datetime(2018,1,1)):
+    def __init__(self,att_i=0,rotation_axis=(0,0,1),apoints={'test':(0,pi/3)},start_datetime=datetime(2018,1,1)):
             self.rotation_axis = rotation_axis
             self.att_i = att_i #initial angle about rotation axis
-            self.points = points #list of lattitude/longitude pairs
+            self.apoints = apoints #list of lattitude/longitude pairs
             #these two attributes are for
             self.change_angle = angle_between(rotation_axis,(0,0,1))
             self.change_ax = tuple(np.cross((0,0,1),rotation_axis))
             self.start_datetime = start_datetime
-            print(self.points)
-            if self.points is not None:
-                for k in self.points.keys():
-                    p = (EARTH_r,) + rad(self.points[k])
+            print(self.apoints)
+            if self.apoints is not None:
+                for k in self.apoints.keys():
+                    p = (EARTH_r,) + rad(self.apoints[k])
                     print("point {} in polar coords: {}".format(k,p))
                     p = spherical_to_cartesian1(p)
                     p = vector(p).rotate(self.change_angle,self.change_ax)
                     print("point {}  in plotting coords: {}".format(k,p))
-                    self.points[k] = p
+                    self.apoints[k] = p
 
     def attitude_at(self,t):
         """Get the angle of the earth at time t (assuming 24 hour days) """
@@ -106,7 +106,7 @@ class Earth:
 
     def point_coords_angle(self,angle,point):
         """ """
-        (r,theta,phi) = spherical_to_cartesian1(self.points[point])
+        (r,theta,phi) = spherical_to_cartesian1(self.apoints[point])
         phi =  phi - angle
         return spherical_to_cartesian(r,theta,phi)
 
