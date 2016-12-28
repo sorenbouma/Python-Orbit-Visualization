@@ -57,8 +57,18 @@ class EarthVis(Earth):
         self.set_angle(theta)
 
 
+def plot_orbit(orbit,timestep = 150):
+    t = 0
+    trail = curve(pos=[orbit.r0])
+    while t <= orbit.T:
+        coord = orbit.t_to_xyz(t)
+        trail.append(coord)
+        t += timestep
+    return trail
 
-class OrbitVisualizer:
+
+
+class CompleteVisualizer:
     """Class for visualizing 3d orbit around earth, using the ExtendedOrbit class.
         Parameters:
         -----------
@@ -95,14 +105,13 @@ class OrbitVisualizer:
                 opacity=0.07,
                 yoffset=20,
                 xoffset=20)
-        self.trail = curve(pos=self.sat.pos,color=random_colour())
+        self.trail = plot_orbit(orbit=self.orbit)
         self.timeslider = wx.Slider(self.window.panel,
             pos=(0.1*self.L,0.9*self.H),
             minValue = 0,
             maxValue = self.trange,
             size=(self.L * 0.9,20))
         self.timeslider.Bind(wx.EVT_SCROLL,self.slider_update)
-        self.timeslider.SetValue(0)
         self.battery = wx.Gauge(self.window.panel,
             name='Battery',
             style=wx.GA_HORIZONTAL,
@@ -128,11 +137,8 @@ class OrbitVisualizer:
         self.animate_button = wx.Button(self.panel,pos=(0,50),label='Animate orbit')
         self.animate_button.Bind(wx.EVT_BUTTON,self.animate)
         self.disp.up=(0,0,1)
-        self.disp.userzoom = True
-        #self.disp.autoscale = False
         self.disp.autocenter = False
         self.orbit_done = False
-        self.get_curve(100)
         self.disp.range=(self.orbit.a*1.9,)*3;self.disp.center = (0,0,0);
         self.umbra = None
         self.set_sundir(0)
@@ -166,9 +172,6 @@ class OrbitVisualizer:
         self.draw_comm_lines(co)
         self.hud.text = "Current date/time: {}".format(self.earth.datetime_at(t))
 
-
-
-
     def draw_comm_lines(self,co):
         """Should delete this soon. """
         for place in self.earth.labels.keys():
@@ -178,17 +181,6 @@ class OrbitVisualizer:
             place_coord = self.earth.labels[place].pos
             if not passes_through_earth(co,place_coord):
                 self.comm[place] = curve(pos=[co, place_coord],color=color.green)
-
-    def get_curve(self,resolution=20):
-        """Plot a curve of the satellites orbit. """
-        t=0
-        while not self.orbit_done:
-            self.sat.pos = self.orbit.t_to_xyz(t)
-            self.trail.append(pos=self.sat.pos)
-            t+=resolution
-            if t >= self.orbit.T:
-                break
-                self.orbit_done = True
 
     def set_sundir(self,t):
         """Sets the direction of the sun/lighting tp where it should be at
@@ -224,14 +216,10 @@ class OrbitVisualizer:
 
 
 
-
-
-
-
 v= tuple(np.random.randint(low=0,high=360,size=(2,)))
 print(v)
 
 #points = {'random coordxn':v,'target':(90,180),'auckland':(90+36.8,174.76),'yurop':(45,21)}
 points=random_coordinates(10)
 my_orbit = ExtendedOrbit(e=0.01,a=EARTH_r + 1e6,inclination=1.5,ascend_node_long=pi/3,peri=pi/3)
-my_vis = OrbitVisualizer(orbit=my_orbit,trange=3600*24*5,points=points)
+my_vis = CompleteVisualizer(orbit=my_orbit,trange=3600*24*5,points=points)

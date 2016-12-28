@@ -19,7 +19,7 @@ class EllipticOrbit1:
 
         self.mu = mu
         self.e=e
-        self.peri = peri
+        self.peri = peri # argument of periapsis
         self.a = a
         self.t = np.linspace(0,trange)# whats this for again?
         self.T = 2 * pi * np.sqrt(self.a ** 3 / (mu))

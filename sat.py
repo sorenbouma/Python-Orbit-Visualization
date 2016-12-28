@@ -43,14 +43,15 @@ class SatVis(AxisVis):
         #self.fov_cone = cone(frame=self,pos=self.pos - a * length,length=length,radius=r,axis=a)
 
 class Satellite:
-    """Satellite utility class - at the moment I do NOT want this to 'own' an orbit.
-        If it can interact with many orbits, it will be more usable for transfer orbits/
-        numerical simulated chaotic orbits or whatever"""
-    def __init__(self,capacity,orbit,orientation=(1,0,0),timestep=1,
+    """Satellite utility class"""
+    def __init__(self,orbit,earth,capacity=35400,orientation=(1,0,0),timestep=1,
                 mass=8,dim=(0.1,0.2,0.3),antenna_gain=0.3):
+        self.orbit = orbit
+        self.earth = earth
+        self.t = 0
         self.current_orient = orientation
-        self.current_coord = (0,0,0)
-        self.efficiency=0.2
+        self.current_coord = self.orbit.r0
+        self.efficiency = 0.2
         self.area = 0.3 * 0.1 #area of solar panel in square metres
         self.timestep = timestep
         self.antenna_gain = antenna_gain
@@ -88,8 +89,8 @@ class Satellite:
         e = p * self.timestep
         return e
 
-    def power_balance(self,orbit,t):
-        e_in = self.energy_recieved(orbit,t)
+    def power_balance(self,t):
+        e_in = self.energy_recieved(self.orbit,t)
         e_out = self.energy_used(t)
         self.current_battery += (e_in - e_out)
         if self.current_battery > self.capacity:
@@ -106,9 +107,30 @@ class Satellite:
                 return True
         return False
 
-    def simulate_comms(self,earth,t):
-        """ """
+    def simulate_comms(self,t):
+        """simulate_comms """
         self.currently_transmitting = {}
-        for place in earth.labels.keys():
+        for place in self.earth.labels.keys():
             if self.communication_possible(place,t):
-                self.currently_transmitting[key] = earth.labels[key]
+                self.currently_transmitting[key] = self.earth.labels[key]
+
+    def perform_timestep(self):
+        """shit son what the fuck """
+        self.current_coord = self.orbit.t_to_xyz(self.t)
+        self.simulate_comms(self.t)
+        #TEMPORARY - REPLACE WITH POLICY SETTER SOON.
+        #(this just always points to earth's center)
+        self.current_orient = np.asarray(self.current_coord) * -1
+
+
+class SatelliteVis(Satellite):
+    def __init__(self,orbit,earth,capacity=35400,orientation=(1,0,0),timestep=1,
+                mass=8,dim=(0.1,0.2,0.3),antenna_gain=0.3):
+        Satellite.__init__(self,orbit,earth,capacity,orientation,timestep,mass,dim,antenna_gain)
+        self.vis_sprite = SatVis(length=5e6,gain=self.gain,pos=self.orbit.r0,arrowlen=5e5)
+
+    def perform_timestep(self,earth):        #self.timeslider.SetValue(0)
+        pass
+        super(Satellite, self).perform_timestep()
+        self.vis_sprite.pos = self.current_coord
+        self.vis_sprite.axis = self.current_orient
