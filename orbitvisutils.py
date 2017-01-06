@@ -41,7 +41,7 @@ class EarthVis(Earth):
         self.att_i = 0
         self.att = self.att_i
         self.labels={}
-        self.dots = points(frame=self.frame,pos=[(0,0,0)],size=1,color=color.magenta)
+        self.dots = points(frame=self.frame,pos=[(0,0,0)],size=4,color=color.magenta)
         for k in self.apoints.keys():
             self.labels[k] = label(frame=self.frame,pos=self.apoints[k],text=k,xoffset=20,yoffset=0,box=False,height=9)
             self.dots.append(self.apoints[k])
@@ -93,14 +93,9 @@ class CompleteVisualizer:
         sidewidth = 100
         self.disp = display(window=self.window,x=sidewidth,y=0,height=self.H-80,width=self.L-sidewidth)
         rot_axis = vector(0,0,EARTH_r).rotate(rad(23),(0,1,0))
-        #for debug
-        a = arrow(axis=rot_axis,color=color.white,shaftwidth=EARTH_r/100)
         self.earth = EarthVis(0,rot_axis,apoints=apoints)
-        #satellite display
-        #self.sat = AxisVis(pos=self.orbit.r0,arrowlen=5e5)
-        #self.sat = SatVis(length=5e6,gain=1.6,pos=self.orbit.r0,arrowlen=5e5)
+        #satellite and whatnot
         self.sat = SatelliteVis(self.orbit,self.earth,timestep=timestep)
-
         self.trail = plot_orbit(orbit=self.orbit)
         self.timeslider = wx.Slider(self.window.panel,
             pos=(0.1*self.L,0.9*self.H),
@@ -118,16 +113,19 @@ class CompleteVisualizer:
         self.hide_labels = wx.Button(self.panel,pos=(0,25),label='Toggle Labels')
         self.hide_labels.Bind(wx.EVT_BUTTON,self.toggle_labels)
 
+        self.toggle_view = wx.Button(self.panel,pos=(0,75),label="Change view")
+        self.toggle_view.Bind(wx.EVT_BUTTON,self.change_view)
+
         self.animate_button = wx.Button(self.panel,pos=(0,50),label='Animate orbit')
         self.animate_button.Bind(wx.EVT_BUTTON,self.animate)
         self.disp.up=(0,0,1)
-        self.disp.autocenter = False
         self.orbit_done = False
         self.disp.range=(self.orbit.a*1.9,)*3;self.disp.center = (0,0,0);
         self.umbra = None
         self.set_sundir(0)
         self.comm={}
         self.umbra.visible = False
+        self.sat_view = False
         self.toggle_labels()
         self.animate()
 
@@ -139,22 +137,14 @@ class CompleteVisualizer:
         """Update the display based on the value from the time slider """
         rate(100)
         t = float(t)
-        #co = self.orbit.t_to_xyz(t)
-        #self.sat.pos = co
-        #self.sat.axis = -1 * np.asarray(co)
-        #self.satlabel.pos = co
-        #self.trail.append(pos=self.sat.pos)
-
         self.earth.set_to_time(t)
-        #b = self.orbit.battery_at(t)
-
-        #self.battery.SetValue(b)
-        #self.batterytitle.SetLabel("Battery: {:.1f}%".format(b))
         self.set_sundir(t)
-        #self.disp.forward = self.sat.axis
-        #self.disp.up = self.sat.arrows['y'].axis
-        #self.draw_comm_lines(co)
-        #self.hud.text = "Current date/time: {}".format(self.earth.datetime_at(t))
+        if self.sat_view:
+            self.disp.center = -self.sat.current_coord * 1.2
+            self.disp.forward = self.sat.current_orient
+        if self.orbit_done:
+            self.sat.current_coord = self.sat.orbit.t_to_xyz(t)
+
 
     def set_sundir(self,t):
         """Sets the direction of the sun/lighting tp where it should be at
@@ -174,6 +164,11 @@ class CompleteVisualizer:
         """Turn the umbra display` on/off """
         self.umbra.visible = not self.umbra.visible
 
+    def change_view(self,evt):
+        self.sat_view = not self.sat_view
+        if not self.sat_view:
+            self.disp.center = (0,0,0)
+
     def toggle_labels(self,evt=None):
         """Turn the comm point labels on/off """
         for x in self.earth.labels.keys():
@@ -188,13 +183,13 @@ class CompleteVisualizer:
             self.update(self.sat.t)
             t += self.sat.timestep
             sleep(0.0001)
-
+        self.orbit_done = True
 
 
 v= tuple(np.random.randint(low=0,high=360,size=(2,)))
 print(v)
 
-#my_points = {'random coordxn':v,'target':(90,180),'auckland':(90+36.8,174.76),'yurop':(45,21)}
-my_points=random_coordinates(10)
-my_orbit = ExtendedOrbit(e=0,a=EARTH_r + 1e6,inclination=1.5,ascend_node_long=pi,peri=pi/3)
-my_vis = CompleteVisualizer(orbit=my_orbit,trange=3600*24*5,apoints=my_points,timestep=20)
+my_points = {'penguins':(180,180),'random coordxn':v,'target':(90,180),'auckland':(90+36.8,174.76),'yurop':(45,21)}
+#my_points=random_coordinates(0)
+my_orbit = ExtendedOrbit(e=0,a=EARTH_r + 1e6,inclination=1.5,ascend_node_long=rad(174),peri=pi/3)
+my_vis = CompleteVisualizer(orbit=my_orbit,trange=3600*2,apoints=my_points,timestep=40)

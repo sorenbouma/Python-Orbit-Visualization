@@ -29,9 +29,11 @@ class SatVis(AxisVis):
         r = np.tan(gain/2) * length
         a = np.asarray(self.arrows['x'].axis)
         a/=mag(a)
-        self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.2, pos=a*length,color=color.orange,
-                        )
-        #self.fov_cone = cone(frame=self,pos=self.pos - a * length,length=length,radius=r,axis=a)
+        self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.2, pos=a*length,color=color.orange)
+        self.camera_pyramid = pyramid(frame=self,axis=-a,size=(length,r,5),pos=a*length,color=color.blue,opacity=0.3)
+        self.mainbox = box(frame=self,pos=(0,0,0),size=(1e5,1e5,1e5))
+
+
 
 class Satellite(object):
     """Satellite utility class"""
@@ -93,7 +95,6 @@ class Satellite(object):
             self.current_battery = self.capacity
         if self.current_battery <= 0:
             print("OUT OF BATTERY")
-            pass
 
     def communication_possible(self,coord):
         """Determines if the satellite can make contact with a given coord"""
@@ -150,6 +151,7 @@ class SatelliteVis(Satellite):
 
     def get_display_string(self):
         disp_string = 'Date/time: ' + str(self.earth.datetime_at(self.t))
+        disp_string += "\nCurrent coord:{:.0f} {:.0f} {:.0f} ".format(*self.current_coord)
         disp_string += "\nBattery: {:.1f}%".format(self.current_battery/self.capacity * 100)
         disp_string += "\nPower in: {:.1f} W".format(self.e_in/self.timestep)
         disp_string += "\nPower used: {} W".format(self.e_out / self.timestep)

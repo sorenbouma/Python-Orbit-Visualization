@@ -158,6 +158,6 @@ def random_coordinates(n=20):
     """this just makes a bunch of random spherical coords to plot for funsies """
     coord_dict = {}
     for i in range(n):
-        coord=tuple(np.random.randint(low=0,high=180,size=(2,)))
+        coord=tuple(np.random.randint(low=-360,high=360,size=(2,)))
         coord_dict['coord no {}: {}'.format(i,coord)] = coord
     return coord_dict
