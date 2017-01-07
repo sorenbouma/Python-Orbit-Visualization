@@ -17,9 +17,32 @@ def v_circ(r):
 
 v = v_circ(geocentric*2)
 
-#my_orbit2 = ExtendedOrbit(r=(geocentric*2,0,0),v=(0,v,0),trange=3600*24,
-#        inclination=pi/6,  ascend_node_long=pi/10)
+def plot_orbit(orbit,timestep = 150):
+    t = 0
+    trail = curve(pos=[orbit.r0],color=random_colour())
+    while t <= orbit.T:
+        coord = orbit.t_to_xyz(t)
+        trail.append(coord)
+        t += timestep
+    return trail
 
+
+class OrbitConstructor:
+    def __init__(self,frame=None,width=400,height=200):
+        self.window = window(width=width, height=height,
+           menus=True, title='OWO WHATS THIS?',
+           style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
+        p=self.window.panel
+        wx.StaticText(p,pos=(0,15),label="eccentricity:")
+        self.e_slider = wx.Slider(p,pos=(0,30),size=(width*0.8,20))
+        wx.StaticText(p,pos=(0,45),label="Longitude of ascending node:")
+
+        self.loan_slider = wx.Slider(p,pos=(0,60),size=(width*0.8,20))
+        self.a_select = wx.TextCtrl(p,pos=(0,80),size=(width*0.8,20),value="enter semimajor axis")
+
+
+    def show(self,orbit):
+        pass
 
 
 class EarthVis(Earth):
@@ -60,16 +83,6 @@ class EarthVis(Earth):
         self.set_angle(theta)
 
 
-def plot_orbit(orbit,timestep = 150):
-    t = 0
-    trail = curve(pos=[orbit.r0],color=random_colour())
-    while t <= orbit.T:
-        coord = orbit.t_to_xyz(t)
-        trail.append(coord)
-        t += timestep
-    return trail
-
-
 
 class CompleteVisualizer:
     """Class for visualizing 3d orbit around earth, using the ExtendedOrbit class.
@@ -81,6 +94,7 @@ class CompleteVisualizer:
             L - width of display in pixels
             H - height of disp;ay in pexels."""
     def __init__(self,orbit,trange,apoints=None,show_axis=True,L=1260,H=800,timestep=50):
+        self.c = OrbitConstructor()
         self.orbit = orbit
         self.L = L
         self.H = H
@@ -108,8 +122,6 @@ class CompleteVisualizer:
             self.axes = AxisVis(arrowlen)
         self.hide_umbra = wx.Button(self.panel,pos=(0,0),label='Toggle umbra')
         self.hide_umbra.Bind(wx.EVT_BUTTON,self.toggle_umbra)
-
-
         self.hide_labels = wx.Button(self.panel,pos=(0,25),label='Toggle Labels')
         self.hide_labels.Bind(wx.EVT_BUTTON,self.toggle_labels)
 
@@ -127,6 +139,7 @@ class CompleteVisualizer:
         self.umbra.visible = False
         self.sat_view = False
         self.toggle_labels()
+
         self.animate()
 
     def slider_update(self,arg):
