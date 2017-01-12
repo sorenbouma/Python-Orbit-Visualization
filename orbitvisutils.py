@@ -17,9 +17,10 @@ def v_circ(r):
 
 v = v_circ(geocentric*2)
 
-def plot_orbit(orbit,timestep = 150):
+def plot_orbit(orbit,disp,timestep = 150):
+    print("called plot_orbit")
     t = 0
-    trail = curve(pos=[orbit.r0],color=random_colour())
+    trail = curve(disp=disp,pos=[orbit.r0],color=random_colour())
     while t <= orbit.T:
         coord = orbit.t_to_xyz(t)
         trail.append(coord)
@@ -28,21 +29,32 @@ def plot_orbit(orbit,timestep = 150):
 
 
 class OrbitConstructor:
-    def __init__(self,frame=None,width=400,height=200):
+    def __init__(self,display,frame=None,width=400,height=200):
         self.window = window(width=width, height=height,
-           menus=True, title='OWO WHATS THIS?',
+           menus=True, title='oWo WHATS THIS?',
            style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
         p=self.window.panel
         wx.StaticText(p,pos=(0,15),label="eccentricity:")
-        self.e_slider = wx.Slider(p,pos=(0,30),size=(width*0.8,20))
+        self.e_slider = wx.Slider(p,pos=(0,30),minValue=0,maxValue=1,
+                size=(width*0.8,20))
         wx.StaticText(p,pos=(0,45),label="Longitude of ascending node:")
 
-        self.loan_slider = wx.Slider(p,pos=(0,60),size=(width*0.8,20))
-        self.a_select = wx.TextCtrl(p,pos=(0,80),size=(width*0.8,20),value="enter semimajor axis")
+        self.loan_slider = wx.Slider(p,pos=(0,60),size=(width*0.8,20),
+                                        minValue=0,maxValue=2*pi)
+        self.a_select = wx.TextCtrl(p,pos=(0,80),size=(width*0.8,20),value="7000000",style=wx.TE_MULTILINE)
+        self.button = wx.Button(p,label='make')
+        self.button.Bind(wx.EVT_BUTTON,self.add_orbit)
+        self.disp = display
+        self.orbit = None
 
+    def add_orbit(self,evt):
+        a=float(self.a_select.GetValue())
+        e=self.e_slider.GetValue()
+        loan=self.loan_slider.GetValue()
+        orbit=ExtendedOrbit(e,a,ascend_node_long=loan)
+        a=plot_orbit(orbit,self.disp)
+        self.orbit = orbit
 
-    def show(self,orbit):
-        pass
 
 
 class EarthVis(Earth):
@@ -94,7 +106,6 @@ class CompleteVisualizer:
             L - width of display in pixels
             H - height of disp;ay in pexels."""
     def __init__(self,orbit,trange,apoints=None,show_axis=True,L=1260,H=800,timestep=50):
-        self.c = OrbitConstructor()
         self.orbit = orbit
         self.L = L
         self.H = H
@@ -106,11 +117,13 @@ class CompleteVisualizer:
         #earth sphere display
         sidewidth = 100
         self.disp = display(window=self.window,x=sidewidth,y=0,height=self.H-80,width=self.L-sidewidth)
+        self.c = OrbitConstructor(self.disp)
+
         rot_axis = vector(0,0,EARTH_r).rotate(rad(23),(0,1,0))
         self.earth = EarthVis(0,rot_axis,apoints=apoints)
         #satellite and whatnot
         self.sat = SatelliteVis(self.orbit,self.earth,timestep=timestep)
-        self.trail = plot_orbit(orbit=self.orbit)
+        self.trail = plot_orbit(orbit=self.orbit,disp=self.disp)
         self.timeslider = wx.Slider(self.window.panel,
             pos=(0.1*self.L,0.9*self.H),
             minValue = 0,
@@ -140,7 +153,7 @@ class CompleteVisualizer:
         self.sat_view = False
         self.toggle_labels()
 
-        self.animate()
+        #self.animate()
 
     def slider_update(self,arg):
         t = arg.GetPosition()
