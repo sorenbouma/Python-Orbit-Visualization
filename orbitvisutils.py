@@ -1,7 +1,8 @@
 from orbit import *
 from visual import *
-from visual.graph import *
 from sat import *
+
+from visual.graph import *
 
 import wx
 import numpy as np
@@ -18,42 +19,63 @@ def v_circ(r):
 v = v_circ(geocentric*2)
 
 def plot_orbit(orbit,disp,timestep = 150):
-    print("called plot_orbit")
     t = 0
-    trail = curve(disp=disp,pos=[orbit.r0],color=random_colour())
-    while t <= orbit.T:
+    trail = curve(disp=disp,pos=[(0,0,0),orbit.r0],color=random_colour())
+    T = orbit.T + timestep
+    while t <= T:
         coord = orbit.t_to_xyz(t)
         trail.append(coord)
         t += timestep
     return trail
 
 
+class SatConstructor:
+    def __init__(self,visualizer,frame,width=400,height=300):
+        pass
+
 class OrbitConstructor:
-    def __init__(self,display,frame=None,width=400,height=200):
+    def __init__(self,visualizer,frame=None,width=400,height=300):
         self.window = window(width=width, height=height,
-           menus=True, title='oWo WHATS THIS?',
+           menus=True, title='Adjust orbit parameters',
            style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
         p=self.window.panel
-        wx.StaticText(p,pos=(0,15),label="eccentricity:")
-        self.e_slider = wx.Slider(p,pos=(0,30),minValue=0,maxValue=1,
+        self.a_select = wx.TextCtrl(p,pos=(0,10),size=(width*0.8,20),value="1000000",style=wx.TE_MULTILINE)
+        self.a_select.Bind(wx.EVT_TEXT,self.adjust_orbit)
+        self.e_slider = wx.Slider(p,pos=(0,30),minValue=0,maxValue=100,
                 size=(width*0.8,20))
+        self.e_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
+
         wx.StaticText(p,pos=(0,45),label="Longitude of ascending node:")
 
-        self.loan_slider = wx.Slider(p,pos=(0,60),size=(width*0.8,20),
-                                        minValue=0,maxValue=2*pi)
-        self.a_select = wx.TextCtrl(p,pos=(0,80),size=(width*0.8,20),value="7000000",style=wx.TE_MULTILINE)
-        self.button = wx.Button(p,label='make')
-        self.button.Bind(wx.EVT_BUTTON,self.add_orbit)
-        self.disp = display
+        self.loan_slider = wx.Slider(p,pos=(0,60),size=(width*0.8,40),
+                                        minValue=0,maxValue=360,style=wx.SL_LABELS)
+        self.loan_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
+        self.i_slider = wx.Slider(p,pos=(0,100),minValue=0,maxValue=90,
+                size=(width*0.8,40),style=wx.SL_LABELS)
+        self.i_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
+        self.p_slider = wx.Slider(p,pos=(0,140),minValue=0,maxValue=360,
+                size=(width*0.8,40),style=wx.SL_LABELS)
+        self.p_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
+        self.disp = visualizer.disp
+        self.visualizer = visualizer
         self.orbit = None
+        self.trail = sphere(radius=0)
 
-    def add_orbit(self,evt):
-        a=float(self.a_select.GetValue())
-        e=self.e_slider.GetValue()
-        loan=self.loan_slider.GetValue()
-        orbit=ExtendedOrbit(e,a,ascend_node_long=loan)
-        a=plot_orbit(orbit,self.disp)
-        self.orbit = orbit
+    def adjust_orbit(self,evt):
+        a=float(self.a_select.GetValue()) + EARTH_r
+        e=self.e_slider.GetValue() / 100.0
+        i = self.i_slider.GetValue() / 90.0 * pi / 2
+        loan=self.loan_slider.GetValue() * pi / 180.0
+        p = self.p_slider.GetValue() * pi / 180.0
+        orbit=ExtendedOrbit(e,a,ascend_node_long=loan,inclination=i,peri=p)
+
+        self.trail.visible = False
+
+        self.trail=plot_orbit(orbit,self.disp,timestep = orbit.T / 50.0)
+        #self.disp.range = (orbit.a*1.3,)*3
+        self.visualizer.set_orbit(orbit)
+
+
 
 
 
@@ -106,7 +128,6 @@ class CompleteVisualizer:
             L - width of display in pixels
             H - height of disp;ay in pexels."""
     def __init__(self,orbit,trange,apoints=None,show_axis=True,L=1260,H=800,timestep=50):
-        self.orbit = orbit
         self.L = L
         self.H = H
         self.trange = trange
@@ -117,13 +138,13 @@ class CompleteVisualizer:
         #earth sphere display
         sidewidth = 100
         self.disp = display(window=self.window,x=sidewidth,y=0,height=self.H-80,width=self.L-sidewidth)
-        self.c = OrbitConstructor(self.disp)
-
+        self.orbit = orbit
+        self.c = OrbitConstructor(self)
+        print(self.orbit)
         rot_axis = vector(0,0,EARTH_r).rotate(rad(23),(0,1,0))
         self.earth = EarthVis(0,rot_axis,apoints=apoints)
         #satellite and whatnot
         self.sat = SatelliteVis(self.orbit,self.earth,timestep=timestep)
-        self.trail = plot_orbit(orbit=self.orbit,disp=self.disp)
         self.timeslider = wx.Slider(self.window.panel,
             pos=(0.1*self.L,0.9*self.H),
             minValue = 0,
@@ -144,6 +165,7 @@ class CompleteVisualizer:
         self.animate_button = wx.Button(self.panel,pos=(0,50),label='Animate orbit')
         self.animate_button.Bind(wx.EVT_BUTTON,self.animate)
         self.disp.up=(0,0,1)
+        self.disp.forward = (-1,-1,-1)
         self.orbit_done = False
         self.disp.range=(self.orbit.a*1.9,)*3;self.disp.center = (0,0,0);
         self.umbra = None
@@ -200,8 +222,14 @@ class CompleteVisualizer:
         for x in self.earth.labels.keys():
             self.earth.labels[x].visible = not self.earth.labels[x].visible
 
+
+    def set_orbit(self,new_orbit):
+        self.orbit = new_orbit
+        self.sat.orbit = new_orbit
+        self.disp.range=(self.orbit.a*1.9,)*3
+
     def animate(self,evt=None):
-        """Replace soon. """
+        """animates the orbit for trange timesteps."""
         print('animating')
         t = 0
         while t < self.trange:
@@ -218,4 +246,4 @@ print(v)
 my_points = {'penguins':(180,180),'random coordxn':v,'target':(90,180),'auckland':(90+36.8,174.76),'yurop':(45,21)}
 #my_points=random_coordinates(0)
 my_orbit = ExtendedOrbit(e=0,a=EARTH_r + 1e6,inclination=1.5,ascend_node_long=rad(174),peri=pi/3)
-my_vis = CompleteVisualizer(orbit=my_orbit,trange=3600*2,apoints=my_points,timestep=40)
+my_vis = CompleteVisualizer(orbit=my_orbit,trange=3600*24,apoints=my_points,timestep=40)

@@ -23,6 +23,8 @@ class EllipticOrbit1:
         self.a = a
         self.t = np.linspace(0,trange)# whats this for again?
         self.T = 2 * pi * np.sqrt(self.a ** 3 / (mu))
+        self.prevtau = 0
+
         self.timestep = timestep
         self.inclination = inclination
         self.ascend_node_long = ascend_node_long
@@ -40,8 +42,9 @@ class EllipticOrbit1:
             * (tau - self.e * np.sin(tau)) - t
         #print("a:{}, mu: {}, e: {}".format(self.a,self.mu,self.e))
         df =  lambda tau: np.sqrt(self.a**3/(self.mu))*(1 - self.e * np.cos(tau))
-        tau_guess = pi-0.1#????? how to get sensible time guess??
+        tau_guess = self.prevtau
         tau = newtons_method(f,df,tau_guess)
+        self.prevtau = tau
         return tau
 
     def tau_to_inclined_coords(self,tau):

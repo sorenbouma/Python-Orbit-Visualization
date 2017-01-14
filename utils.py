@@ -87,6 +87,7 @@ def newtons_method(f,dfdx,x0,epsilon=1e-3):
         if abs(f(x)) <= epsilon:
             #print("converged")
             converged = True
+        
     return x
 
 
