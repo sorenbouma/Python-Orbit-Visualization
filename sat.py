@@ -28,12 +28,18 @@ class SatVis(AxisVis):
         AxisVis.__init__(self,arrowlen,shaftwidth,pos,standard)
         r = np.tan(gain/2) * length
         a = np.asarray(self.arrows['x'].axis)
+        self.ax = a
+        self.length = length
+        self.gain = gain
         a/=mag(a)
         self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.2, pos=a*length,color=color.orange)
         self.camera_pyramid = pyramid(frame=self,axis=-a,size=(length,r,5),pos=a*length,color=color.blue,opacity=0.3)
         self.mainbox = box(frame=self,pos=(0,0,0),size=(1e5,1e5,1e5))
 
-
+    def set_gain(self,gain):
+        self.gain = gain
+        r = np.tan(gain / 2) * self.length
+        self.fov_cone.radius = r
 
 class Satellite(object):
     """Satellite utility class"""
@@ -123,11 +129,16 @@ class Satellite(object):
         self.power_balance()
         self.t += self.timestep
 
+    def set_gain(self,gain):
+        self.antenna_gain = gain
+
+
+
 class SatelliteVis(Satellite):
     def __init__(self,orbit,earth,capacity=35400,orientation=(1,0,0),timestep=1,
                 mass=8,dim=(0.1,0.2,0.3),antenna_gain=1.5):
         Satellite.__init__(self,orbit,earth,capacity,orientation,timestep,mass,dim,antenna_gain)
-        self.vis = SatVis(length=5e6,gain=self.antenna_gain,pos=self.orbit.r0,arrowlen=5e5)
+        self.vis = SatVis(length=orbit.a,gain=self.antenna_gain,pos=self.orbit.r0,arrowlen=5e5)
         self.comm_lines = {}
         self.display_string = "Ready for use"
         self.hud = label(pos=(0,0,0),xoffset=-310,yoffset=100,text=self.display_string,line=False)

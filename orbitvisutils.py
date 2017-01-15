@@ -1,9 +1,7 @@
 from orbit import *
 from visual import *
 from sat import *
-
 from visual.graph import *
-
 import wx
 import numpy as np
 from datetime import datetime
@@ -33,28 +31,38 @@ class SatConstructor:
     def __init__(self,visualizer,frame,width=400,height=300):
         pass
 
-class OrbitConstructor:
+class OrbitConstructor(wx.Frame):
+    """GUI window that allows user to adjust orbit parameters in real time.
+        """
+
     def __init__(self,visualizer,frame=None,width=400,height=300):
+        wx.Frame.__init__(self, None, wx.ID_ANY, title='My Form')
+        self.panel = wx.Panel(self, wx.ID_ANY)
+
         self.window = window(width=width, height=height,
            menus=True, title='Adjust orbit parameters',
            style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
         p=self.window.panel
-        self.a_select = wx.TextCtrl(p,pos=(0,10),size=(width*0.8,20),value="1000000",style=wx.TE_MULTILINE)
+        mysizer = wx.BoxSizer(wx.VERTICAL)
+
+        wx.StaticText(p,pos=(10,0),label='Orbit height above sea level(metres):')
+        self.a_select = wx.TextCtrl(p,pos=(0,20),size=(width*0.9,20),value="1000000",style=wx.TE_MULTILINE)
         self.a_select.Bind(wx.EVT_TEXT,self.adjust_orbit)
-        self.e_slider = wx.Slider(p,pos=(0,30),minValue=0,maxValue=100,
-                size=(width*0.8,20))
-        self.e_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
-
-        wx.StaticText(p,pos=(0,45),label="Longitude of ascending node:")
-
-        self.loan_slider = wx.Slider(p,pos=(0,60),size=(width*0.8,40),
+        wx.StaticText(p,pos=(10,40),label="inclination(degrees)")
+        self.i_slider = wx.Slider(p,pos=(0,50),minValue=0,maxValue=90,
+                size=(width*0.9,40),style=wx.SL_LABELS)
+        self.i_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
+        wx.StaticText(p,pos=(10,80),label="Longitude of ascending node(degrees)")
+        self.loan_slider = wx.Slider(p,pos=(0,100),size=(width*0.9,40),
                                         minValue=0,maxValue=360,style=wx.SL_LABELS)
         self.loan_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
-        self.i_slider = wx.Slider(p,pos=(0,100),minValue=0,maxValue=90,
-                size=(width*0.8,40),style=wx.SL_LABELS)
-        self.i_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
-        self.p_slider = wx.Slider(p,pos=(0,140),minValue=0,maxValue=360,
-                size=(width*0.8,40),style=wx.SL_LABELS)
+        wx.StaticText(p,pos=(10,140),label="Eccentricity(%)")
+        self.e_slider = wx.Slider(p,pos=(0,160),minValue=0,maxValue=100,
+                size=(width*0.9,40),style=wx.SL_LABELS)
+        self.e_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
+        wx.StaticText(p,pos=(10,200),label="Argument of Periapsis(degrees)")
+        self.p_slider = wx.Slider(p,pos=(0,220),minValue=0,maxValue=360,
+                size=(width*0.9,40),style=wx.SL_LABELS)
         self.p_slider.Bind(wx.EVT_SCROLL,self.adjust_orbit)
         self.disp = visualizer.disp
         self.visualizer = visualizer
@@ -62,6 +70,8 @@ class OrbitConstructor:
         self.trail = sphere(radius=0)
 
     def adjust_orbit(self,evt):
+        """When user adjusts orbit parameters, adjust the orbit of the
+            CompleteVisualizer class """
         a=float(self.a_select.GetValue()) + EARTH_r
         e=self.e_slider.GetValue() / 100.0
         i = self.i_slider.GetValue() / 90.0 * pi / 2
@@ -126,7 +136,8 @@ class CompleteVisualizer:
             trange - int, how many seconds of time to simulate
             show_axis - bool, display axis vectors or nah
             L - width of display in pixels
-            H - height of disp;ay in pexels."""
+            H - height of disp;ay in pexels.
+            """
     def __init__(self,orbit,trange,apoints=None,show_axis=True,L=1260,H=800,timestep=50):
         self.L = L
         self.H = H
@@ -243,7 +254,7 @@ class CompleteVisualizer:
 v= tuple(np.random.randint(low=0,high=360,size=(2,)))
 print(v)
 
-my_points = {'penguins':(180,180),'random coordxn':v,'target':(90,180),'auckland':(90+36.8,174.76),'yurop':(45,21)}
+my_points = {'penguins':(180,180),'random coordxn':v,'Pacific OCean':(90,180),'Europe':(90+36.8,174.76),'yurop':(45,21)}
 #my_points=random_coordinates(0)
 my_orbit = ExtendedOrbit(e=0,a=EARTH_r + 1e6,inclination=1.5,ascend_node_long=rad(174),peri=pi/3)
 my_vis = CompleteVisualizer(orbit=my_orbit,trange=3600*24,apoints=my_points,timestep=40)
