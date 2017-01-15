@@ -38,6 +38,8 @@ def angle_between(v1,v2):
     """Returns the angle between 2 vectors in 3 space."""
     return np.arccos(np.dot(v1,v2)/(mag(v1)*mag(v2)))
 
+#COORDINATE TRANSFORMS!
+
 def polar_to_cartesian(r,phi):
     return (r*np.cos(phi),r*np.sin(phi))
 
@@ -66,6 +68,14 @@ def spherical_to_cartesian1(coord):
     y =  r * np.sin(theta) * np.sin(phi)
     return (x,y,z)
 
+def latlong_to_spherical(latitude,longitude):
+    """Convert latitude and longitude to sperical cooords """
+    theta = 90 - latitude
+    phi = longitude
+    pass
+
+
+
 
 def newtons_method(f,dfdx,x0,epsilon=1e-3):
     """run newtons method on f with inital guess x0 until it converges
@@ -87,7 +97,7 @@ def newtons_method(f,dfdx,x0,epsilon=1e-3):
         if abs(f(x)) <= epsilon:
             #print("converged")
             converged = True
-        
+
     return x
 
 

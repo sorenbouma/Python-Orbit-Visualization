@@ -22,18 +22,19 @@ class AxisVis(frame):
 
 
 class SatVis(AxisVis):
-    """This is for visualizing the orientation and field of view of a satellite.
-        probably a temporary class.? """
-    def __init__(self,gain,length,arrowlen,shaftwidth='auto',pos=(0,0,0),standard=True):
+    """This is for visualizing the orientation and field of view of a satellite.probably a temporary class.? """
+    def __init__(self,gain,length,arrowlen,shaftwidth='auto',cam_gain=0,pos=(0,0,0),standard=True):
         AxisVis.__init__(self,arrowlen,shaftwidth,pos,standard)
         r = np.tan(gain/2) * length
         a = np.asarray(self.arrows['x'].axis)
+        r_cam = np.tan(cam_gain/2)*length
         self.ax = a
         self.length = length
         self.gain = gain
+        self.cam_gain=cam_gain
         a/=mag(a)
-        self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.2, pos=a*length,color=color.orange)
-        self.camera_pyramid = pyramid(frame=self,axis=-a,size=(length,r,5),pos=a*length,color=color.blue,opacity=0.3)
+        self.fov_cone=cone(frame=self,length=length,radius=r,axis=-a,opacity=0.15, pos=a*length,color=color.orange)
+        self.camera_pyramid = pyramid(frame=self,axis=-a,size=(length,r_cam,1e5),pos=a*length,color=color.blue,opacity=0.3)
         self.mainbox = box(frame=self,pos=(0,0,0),size=(1e5,1e5,1e5))
 
     def set_gain(self,gain):
@@ -41,10 +42,27 @@ class SatVis(AxisVis):
         r = np.tan(gain / 2) * self.length
         self.fov_cone.radius = r
 
+    def set_cam_gain(self,gain):
+        self.cam_gain = gain
+        r = np.tan(gain / 2) * self.length
+        csize = self.camera_pyramid.size
+        csize[1] = r
+        self.camera_pyramid.size = csize
+
+    def set_length(self,new_length):
+        """Set the length of the displayed cone/pyramids """
+        self.length = new_length
+        self.camera_pyramid.pos = self.ax*self.length
+        self.fov_cone.length = new_length
+        self.camera_pyramid.length=new_length
+        self.fov_cone.pos = self.ax*self.length
+        self.set_gain(self.gain)
+        self.set_cam_gain(self.cam_gain)
+
 class Satellite(object):
     """Satellite utility class"""
     def __init__(self,orbit,earth,capacity=35400.0,orientation=(1,0,0),timestep=1,
-                mass=8,dim=(0.1,0.2,0.3),antenna_gain=1.5):
+                mass=8,dim=(0.1,0.2,0.3),antenna_gain=0):
         self.orbit = orbit
         self.earth = earth
         self.t = 0
@@ -55,6 +73,7 @@ class Satellite(object):
         self.area = 0.3 * 0.1 #area of solar panel in square metres
         self.timestep = timestep
         self.antenna_gain = antenna_gain
+        self.cam_gain = 0
         self.currently_collecting = True
         self.currently_transmitting = {}#dict to store all locations tras
         self.capacity = capacity
@@ -82,7 +101,7 @@ class Satellite(object):
         return e
 
     def energy_used(self):
-        p = 4 #1 watt intermittent power use
+        p = 1 #1 watt intermittent power use
         if self.currently_transmitting != {}:
             p += 5
         if self.currently_collecting:
@@ -100,7 +119,7 @@ class Satellite(object):
         if self.current_battery > self.capacity:
             self.current_battery = self.capacity
         if self.current_battery <= 0:
-            print("OUT OF BATTERY")
+            pass
 
     def communication_possible(self,coord):
         """Determines if the satellite can make contact with a given coord"""
@@ -129,14 +148,13 @@ class Satellite(object):
         self.power_balance()
         self.t += self.timestep
 
-    def set_gain(self,gain):
-        self.antenna_gain = gain
+
 
 
 
 class SatelliteVis(Satellite):
     def __init__(self,orbit,earth,capacity=35400,orientation=(1,0,0),timestep=1,
-                mass=8,dim=(0.1,0.2,0.3),antenna_gain=1.5):
+                mass=8,dim=(0.1,0.2,0.3),antenna_gain=0):
         Satellite.__init__(self,orbit,earth,capacity,orientation,timestep,mass,dim,antenna_gain)
         self.vis = SatVis(length=orbit.a,gain=self.antenna_gain,pos=self.orbit.r0,arrowlen=5e5)
         self.comm_lines = {}
@@ -147,8 +165,9 @@ class SatelliteVis(Satellite):
 
     def perform_timestep(self):
         super(SatelliteVis,self).perform_timestep()
-        self.vis.pos = self.current_coord
+        #self.vis.pos = self.current_coord
         self.vis.axis = self.current_orient
+        self.set_pos(self.current_coord)
         #delete any lines from other timesteps
         #draw line from satellite to any points making communication
         for line in self.comm_lines.values():
@@ -173,5 +192,29 @@ class SatelliteVis(Satellite):
             disp_string += "\nTransmitting data to points:"
             for place in self.currently_transmitting.keys():
                 disp_string += "\n  " + place
-
         return disp_string
+
+    def set_gain(self,gain):
+        self.antenna_gain = gain
+        self.vis.set_gain(gain)
+
+    def set_cam_gain(self,gain):
+        self.cam_gain=gain
+        self.vis.set_cam_gain(gain)
+
+
+
+
+    def set_pos(self,new_pos):
+        self.vis.pos = new_pos
+        self.current_coord = new_pos
+        #if self.t % self.timestep * 150 == 0:
+        #    self.vis.set_length(mag(self.current_coord))
+
+    def set_orbit(self,new_orbit):
+        self.orbit = new_orbit
+        self.set_pos(self.orbit.t_to_xyz(self.t))
+
+    def toggle_collection(self):
+        self.currently_collecting = not self.currently_collecting
+        self.vis.camera_pyramid.visible = not self.vis.camera_pyramid.visible
