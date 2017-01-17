@@ -7,10 +7,6 @@ import numpy as np
 from datetime import datetime
 
 
-geocentric = 42164e3
-
-
-
 class EarthVis(Earth):
     """Adds visualization to the Earth class(found in orbit.py)."""
     def __init__(self,att_i,rotation_axis,apoints={'test':(pi/3,pi/5)}):
@@ -163,16 +159,18 @@ class PointAdder:
         self.ok = wx.Button(p,pos=(0,50),label='ok')
         self.lat_entry=wx.TextCtrl(p,pos=(0,0))
 
+    def add_point(self,evt):
+        pass
 
 class CompleteVisualizer(wx.Frame):
     """Class for visualizing 3d orbit around earth, using the ExtendedOrbit class.
         Parameters:
         -----------
-            orbit - instance of ExtendedOrbit class
             trange - int, how many seconds of time to simulate
+            timestep - int, how many seconds per timestep for animation
             show_axis - bool, display axis vectors or nah
-            L - width of display in pixels
-            H - height of disp;ay in pexels.
+            apoints - communication points on the earth to track
+
             """
     def __init__(self,trange,apoints=None,show_axis=True,timestep=50):
         self.trange = trange
@@ -208,11 +206,18 @@ class CompleteVisualizer(wx.Frame):
         self.hide_labels = wx.Button(self.panel,pos=(0,25),label='Toggle Labels')
         self.hide_labels.Bind(wx.EVT_BUTTON,self.toggle_labels)
 
+        self.animate_button = wx.Button(self.panel,pos=(0,50),label='Animate orbit')
+        self.animate_button.Bind(wx.EVT_BUTTON,self.animate)
+
         self.toggle_view = wx.Button(self.panel,pos=(0,75),label="Change view")
         self.toggle_view.Bind(wx.EVT_BUTTON,self.change_view)
 
-        self.animate_button = wx.Button(self.panel,pos=(0,50),label='Animate orbit')
-        self.animate_button.Bind(wx.EVT_BUTTON,self.animate)
+        wx.StaticText(self.panel,pos=(0,105),label="Adjust timestep")
+
+        self.timestep_slider = wx.Slider(self.panel,pos=(0,120),size=(sidewidth*0.9,45),
+                                        style=wx.SL_VALUE_LABEL,minValue=1,maxValue=120)
+        self.timestep_slider.Bind(wx.EVT_SCROLL,self.change_timestep_size)
+
         self.disp.up=(0,0,1)
         self.disp.forward = (-1,-1,-1)
         self.orbit_done = False
@@ -220,11 +225,9 @@ class CompleteVisualizer(wx.Frame):
         self.umbra = None
         self.set_sundir(0)
         self.comm={}
-        #self.umbra.visible = False
         self.sat_view = False
         self.toggle_labels()
         self.umbra.visible=False
-        #self.animate()
 
     def slider_update(self,arg):
         t = arg.GetPosition()
@@ -242,7 +245,6 @@ class CompleteVisualizer(wx.Frame):
         if self.orbit_done:
             self.sat.current_coord = self.sat.orbit.t_to_xyz(t)
 
-
     def set_sundir(self,t):
         """Sets the direction of the sun/lighting tp where it should be at
             time t. """
@@ -252,7 +254,7 @@ class CompleteVisualizer(wx.Frame):
         self.sunl2 = distant_light(direction=self.sundir,color=color.white)
         self.disp.lights=[self.sunl,self.sunl2]
         if self.umbra is None:
-            self.umbra = cone(pos=(0,0,0),radius=EARTH_r,length=-9*EARTH_r,
+            self.umbra = cone(pos=(0,0,0),radius=EARTH_r,length=EARTH_r,
                             opacity=0.3,axis=self.sundir, color = color.green)
 
         self.umbra.axis = self.sundir;
@@ -271,7 +273,6 @@ class CompleteVisualizer(wx.Frame):
         for x in self.earth.labels.keys():
             self.earth.labels[x].visible = not self.earth.labels[x].visible
 
-
     def set_orbit(self,new_orbit):
         self.orbit = new_orbit
         self.sat.set_orbit(new_orbit)
@@ -289,11 +290,15 @@ class CompleteVisualizer(wx.Frame):
             sleep(0.0001)
         self.orbit_done = True
 
+    def change_timestep_size(self,evt=None):
+        """Adjust the size of the timestep to change the animation speed"""
+        new_size=self.timestep_slider.GetValue()
+        self.timestep = new_size
+        self.sat.timestep = new_size
+
 
 v= tuple(np.random.randint(low=0,high=360,size=(2,)))
-print(v)
 
 my_points = {'los angeles':(90-34,360-118),'penguins':(180,180),
 'random coordxn':v,'Pacific OCean':(90,180),'Auckland':(90+36.8,174.76),'yurop':(45,21)}
-#my_points=random_coordinates(0)
 my_vis = CompleteVisualizer(trange=3600*24,apoints=my_points,timestep=40)
