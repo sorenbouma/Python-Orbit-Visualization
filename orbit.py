@@ -31,7 +31,6 @@ class EllipticOrbit1:
         self.mean_anomaly = mean_anomaly
         self.r0 = np.asarray(self.t_to_xyz(0))
 
-
     def time_to_tau(self,t):
         """Returns the eccentric anomaly tau for a given time value t
             (seconds).
@@ -93,6 +92,7 @@ class Earth:
             self.start_datetime = start_datetime
             print(self.apoints)
             if self.apoints is not None:
+                #rotate the coords with the earth->xyz so they can be plotted
                 for k in self.apoints.keys():
                     p = (EARTH_r,) + rad(self.apoints[k])
                     print("point {} in polar coords: {}".format(k,p))
@@ -116,6 +116,7 @@ class Earth:
     def datetime_at(self,t):
         td=timedelta(seconds=t)
         return str(self.start_datetime + td)
+
 
 
 class ExtendedOrbit(EllipticOrbit1):

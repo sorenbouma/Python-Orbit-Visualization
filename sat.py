@@ -202,9 +202,6 @@ class SatelliteVis(Satellite):
         self.cam_gain=gain
         self.vis.set_cam_gain(gain)
 
-
-
-
     def set_pos(self,new_pos):
         self.vis.pos = new_pos
         self.current_coord = new_pos

@@ -44,6 +44,17 @@ class EarthVis(Earth):
         theta = self.attitude_at(t)
         self.set_angle(theta)
 
+    def add_point(self, name, coord):
+        """Add a new point to track. coord should be a tuple of (theta,phi) """
+        self.apoints[name] = coord
+        p = (EARTH_r,) + rad(coord)
+        p=spherical_to_cartesian1(p)
+        p = vector(p).rotate(self.change_angle,self.change_ax)
+        print(p)
+        pcoord = self.apoints[name]
+        self.dots.append(pcoord)
+        self.labels[name] = label(frame=self.frame,pos=pcoord,text=name,xoffset=20,yoffset=0,box=False,height=9)
+
 
 
 def plot_orbit(orbit,disp,timestep = 150):
@@ -141,8 +152,11 @@ class OrbitConstructor(wx.Frame):
 
         self.trail.visible = False
 
+
         self.trail=plot_orbit(orbit,self.disp,timestep = orbit.T / 50.0)
+        #a = plot_orbit(orbit,self.disp,timestep = orbit.T / 50.0)
         #self.disp.range = (orbit.a*1.3,)*3
+
         self.visualizer.set_orbit(orbit)
 
     def bring_to_front(self,evt=None):
@@ -151,16 +165,26 @@ class OrbitConstructor(wx.Frame):
 
 
 class PointAdder:
-    def __init(self,visualizer):
+    def __init__(self,visualizer):
         pass
-        self.window = window(x=500,y=500,width=100,height=100,style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX | wx.STAY_ON_TOP)
+        self.window = window(x=500,y=500,width=150,height=150,style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX | wx.STAY_ON_TOP)
         p=self.window.panel
         self.visualizer=visualizer
-        self.ok = wx.Button(p,pos=(0,50),label='ok')
-        self.lat_entry=wx.TextCtrl(p,pos=(0,0))
+        self.ok = wx.Button(p,pos=(70,50),label='ok')
+        self.ok.Bind(wx.EVT_BUTTON,self.add_point)
+        self.name_entry = wx.TextCtrl(p,pos=(0,00),value="0",style=wx.TE_MULTILINE)
+        self.long_entry = wx.TextCtrl(p,pos=(0,50),value="0",style=wx.TE_MULTILINE)
+        self.lat_entry=wx.TextCtrl(p,pos=(0,80),value="0",style=wx.TE_MULTILINE)
 
     def add_point(self,evt):
         pass
+        lati = rad(float(self.lat_entry.GetValue()))
+        longi = rad(float(self.long_entry.GetValue()))
+        name = self.name_entry.GetValue()
+        self.visualizer.earth.add_point(name,(lati,longi))
+        self.window.panel.Destroy()
+        del self.window
+        self.window = None
 
 class CompleteVisualizer(wx.Frame):
     """Class for visualizing 3d orbit around earth, using the ExtendedOrbit class.
@@ -218,6 +242,8 @@ class CompleteVisualizer(wx.Frame):
                                         style=wx.SL_VALUE_LABEL,minValue=1,maxValue=120)
         self.timestep_slider.Bind(wx.EVT_SCROLL,self.change_timestep_size)
 
+        self.addpoint_button=wx.Button(self.panel,pos=(0,160),label="Add \ncommunication\npoint")
+        self.addpoint_button.Bind(wx.EVT_BUTTON,self.add_point)
         self.disp.up=(0,0,1)
         self.disp.forward = (-1,-1,-1)
         self.orbit_done = False
@@ -295,6 +321,9 @@ class CompleteVisualizer(wx.Frame):
         new_size=self.timestep_slider.GetValue()
         self.timestep = new_size
         self.sat.timestep = new_size
+
+    def add_point(self,evt=None):
+        a = PointAdder(self)
 
 
 v= tuple(np.random.randint(low=0,high=360,size=(2,)))
