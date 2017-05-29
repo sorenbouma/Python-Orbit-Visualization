@@ -6,7 +6,6 @@ import wx
 import numpy as np
 from datetime import datetime
 
-
 class EarthVis(Earth):
     """Adds visualization to the Earth class(found in orbit.py)."""
     def __init__(self,att_i,rotation_axis,apoints={'test':(pi/3,pi/5)}):
@@ -15,7 +14,6 @@ class EarthVis(Earth):
         self.orb = sphere(frame=self.frame,material=materials.earth,radius=EARTH_r,)
         self.orb.rotate(angle=pi/2,axis=(0,0,1))
         self.orb.rotate(angle=pi/2,axis=(0,1,0))
-
         #axis to rotate earth about to get initial orient right.
         axv = tuple(np.cross((0,0,1),rotation_axis))
         axv = self.change_ax
@@ -54,8 +52,6 @@ class EarthVis(Earth):
         pcoord = self.apoints[name]
         self.dots.append(pcoord)
         self.labels[name] = label(frame=self.frame,pos=pcoord,text=name,xoffset=20,yoffset=0,box=False,height=9)
-
-
 
 def plot_orbit(orbit,disp,timestep = 150):
     t = 0
