@@ -3,7 +3,7 @@ from utils import *
 from datetime import datetime, timedelta
 #SI UNITS FOR EVERYTHING!
 global G, pi, EARTH_M, EARTH_r, SUN_TO_EARTH, SUN_r
-G = 6.674e-11# gravit. constant in metres cubed per (kilogram second squared)
+G = 6.674e-11# gravity. constant in metres cubed per (kilogram second squared)
 pi = 3.14159
 EARTH_M = 5.972e24#mass of earth
 EARTH_r = 6.373e6#radius of earth
@@ -45,6 +45,7 @@ class EllipticOrbit1:
         tau = newtons_method(f,df,tau_guess)
         self.prevtau = tau
         return tau
+ 
 
     def tau_to_inclined_coords(self,tau):
         """Returns polar inclined coords from eccentric anomaly tau """

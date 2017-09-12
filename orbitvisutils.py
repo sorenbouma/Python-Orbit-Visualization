@@ -159,7 +159,6 @@ class OrbitConstructor(wx.Frame):
         print("Called bring to front")
         #self.window.panel.ToggleWindowStyle(wx.STAY_ON_TOP)
 
-
 class PointAdder:
     def __init__(self,visualizer):
         pass
@@ -278,7 +277,6 @@ class CompleteVisualizer(wx.Frame):
         if self.umbra is None:
             self.umbra = cone(pos=(0,0,0),radius=EARTH_r,length=EARTH_r,
                             opacity=0.3,axis=self.sundir, color = color.green)
-
         self.umbra.axis = self.sundir;
 
     def toggle_umbra(self,evt):
@@ -303,7 +301,6 @@ class CompleteVisualizer(wx.Frame):
     def animate(self,evt=None):
         """animates the orbit for trange timesteps."""
         print('animating')
-
         t = 0
         while t < self.trange:
             self.sat.perform_timestep()
@@ -320,7 +317,6 @@ class CompleteVisualizer(wx.Frame):
 
     def add_point(self,evt=None):
         a = PointAdder(self)
-
 
 v= tuple(np.random.randint(low=0,high=360,size=(2,)))
 

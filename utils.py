@@ -75,8 +75,6 @@ def latlong_to_spherical(latitude,longitude):
     pass
 
 
-
-
 def newtons_method(f,dfdx,x0,epsilon=1e-3):
     """run newtons method on f with inital guess x0 until it converges
         to the root"""
